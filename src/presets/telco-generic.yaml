@@ -1,0 +1,37 @@
+repo:
+  name: unknown
+  domain: generic
+  tier: 2
+
+checks:
+  pii:
+    mode: warn
+    triggers: [pre-commit, ci]
+
+  path-guard:
+    mode: enforce
+    triggers: [commit-msg, ci]
+    protected_paths:
+      - "infra/**"
+      - "migrations/**"
+      - "*.policy.yaml"
+      - ".github/workflows/**"
+    approval_trailer: "CHANGE-APPROVED"
+
+  test-skip:
+    mode: warn
+    triggers: [pre-commit, ci]
+    blocked_annotations: [".skip(", "xit(", "it.skip(", "describe.skip(", "@skip", "@Disabled"]
+    require_ticket: true
+
+  history-guard:
+    mode: enforce
+    triggers: [pre-push]
+    protected_branches: [main, master, develop, "release/*"]
+    block_force_push: true
+    block_branch_delete_on_remote: true
+
+reporting:
+  format: human
+  audit_log: ".git/ripstop/audit.jsonl"
+  witness_log: ".git/ripstop/witness.jsonl"
