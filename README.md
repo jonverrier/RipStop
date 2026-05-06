@@ -14,7 +14,7 @@ It does not replace sandboxing, branch protection, secret scanning, or code revi
 - Reports findings in human-readable or JSON form.
 - Writes audit and witness records for review and recovery.
 
-The first implementation includes the core CLI, config loader, check registry, reporter framework, and initial built-in checks. The full product design is in [`docs/agent-guardrails-spec.md`](docs/agent-guardrails-spec.md).
+The first implementation includes the core CLI, config loader, check registry, reporter framework, and initial built-in checks. The full product design is in [`docs/agent-guardrails-spec.md`](docs/agent-guardrails-spec.md). A concise **roadmap** (what is shipped, prioritised next steps, and how history vs. working-tree controls fit) is in [`docs/RIPSTOP-ROADMAP-PLAN.md`](docs/RIPSTOP-ROADMAP-PLAN.md).
 
 ## Install
 
