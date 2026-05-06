@@ -34,6 +34,7 @@
   },
   "scripts": {
     "build": "tsc -b && node scripts/copy-assets.js",
+    "prepare": "npm run build",
     "clean": "rimraf dist coverage .nyc_output",
     "prepublishOnly": "npm run build",
     "test": "npm run test:ci",
