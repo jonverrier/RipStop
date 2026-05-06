@@ -25,7 +25,7 @@ export async function loadConfig(repoRoot: string, configPath: string = '.guardr
   const resolvedConfigPath = path.isAbsolute(configPath) ? configPath : path.join(repoRoot, configPath);
   const repoConfig = await readYamlObject(resolvedConfigPath);
   const presetRef = typeof repoConfig.extends === 'string' ? repoConfig.extends : undefined;
-  const presetConfig = presetRef ? await loadPreset(presetRef) : {};
+  const presetConfig = presetRef ? await loadPresetResolved(presetRef) : {};
   const merged = deepMerge(presetConfig, repoConfig);
 
   const parsed = RipstopConfigSchema.safeParse(merged);
@@ -60,11 +60,31 @@ export function deepMerge(base: unknown, override: unknown): unknown {
   return output;
 }
 
-async function loadPreset(presetRef: string): Promise<JsonObject> {
+const MAX_PRESET_DEPTH = 12;
+
+/**
+ * Loads a built-in preset YAML, recursively merging its own `extends` chain (inner presets first).
+ * @param presetRef - Reference such as `@jonverrier/ripstop/presets/telco-bss`.
+ * @param depth - Recursion guard (internal).
+ * @returns Merged preset object without an `extends` key on the root merge result.
+ */
+async function loadPresetResolved(presetRef: string, depth = 0): Promise<JsonObject> {
+  if (depth > MAX_PRESET_DEPTH) {
+    throw new InvalidParameterError(`Preset extends chain exceeds depth limit (${MAX_PRESET_DEPTH}). Check for cycles.`);
+  }
+
   if (!presetRef.startsWith(PRESET_PREFIX)) {
     throw new InvalidParameterError(`Unsupported preset reference "${presetRef}". Built-in presets must start with ${PRESET_PREFIX}`);
   }
 
+  const raw = await readPresetFile(presetRef);
+  const innerRef = typeof raw.extends === 'string' && raw.extends.startsWith(PRESET_PREFIX) ? raw.extends : undefined;
+  const { extends: _ignored, ...rest } = raw;
+  const base = innerRef ? await loadPresetResolved(innerRef, depth + 1) : {};
+  return deepMerge(base, rest) as JsonObject;
+}
+
+async function readPresetFile(presetRef: string): Promise<JsonObject> {
   const presetName = presetRef.slice(PRESET_PREFIX.length);
   if (!presetName || presetName.includes('..') || path.isAbsolute(presetName)) {
     throw new InvalidParameterError(`Invalid preset name "${presetName}"`);

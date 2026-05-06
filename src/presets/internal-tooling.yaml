@@ -31,6 +31,11 @@ checks:
     block_force_push: true
     block_branch_delete_on_remote: true
 
+  ripstop-md-fresh:
+    mode: warn
+    triggers: [pre-commit, ci]
+    output_path: "RIPSTOP.md"
+
 reporting:
   format: human
   audit_log: ".git/ripstop/audit.jsonl"

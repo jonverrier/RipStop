@@ -59,6 +59,10 @@ export interface ICheckContext {
   mode: CheckMode;
   audit: AuditWriter;
   witness: WitnessWriter;
+  /** Merged Ripstop configuration produced by `loadConfig` for this run. */
+  resolvedRipstopConfig: unknown;
+  /** Path to the guardrails file for this run (repo-relative or absolute). */
+  guardrailsConfigPath: string;
 }
 
 export interface ICheck {

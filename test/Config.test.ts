@@ -48,4 +48,21 @@ checks:
     expect(config.checks['path-guard'].mode).toBe('enforce');
     expect(config.reporting.audit_log).toBe('.git/ripstop/audit.jsonl');
   });
+
+  it('resolves telco-bss preset through chained extends', async () => {
+    const repoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ripstop-config-bss-'));
+    await fs.writeFile(path.join(repoRoot, '.guardrails.yaml'), `
+repo:
+  name: bss-example
+  domain: bss
+  tier: 1
+extends: "@jonverrier/ripstop/presets/telco-bss"
+`, 'utf8');
+
+    const config = await loadConfig(repoRoot);
+
+    expect(config.checks['ripstop-md-fresh'].mode).toBe('enforce');
+    expect(config.checks['path-guard'].mode).toBe('enforce');
+    expect(config.checks['pii'].mode).toBe('warn');
+  });
 });

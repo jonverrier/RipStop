@@ -21,6 +21,8 @@ export interface IRunOptions {
   modeOverride?: CheckMode;
   commitMessage?: string;
   pushPayload?: IPushPayload;
+  /** Path passed to `loadConfig` for this run (default `.guardrails.yaml`). */
+  guardrailsConfigPath: string;
 }
 
 export interface IRunResult {
@@ -66,7 +68,9 @@ export async function runChecks(config: IRipstopConfig, registry: CheckRegistry,
       config: baseConfig,
       mode,
       audit,
-      witness
+      witness,
+      resolvedRipstopConfig: config,
+      guardrailsConfigPath: options.guardrailsConfigPath
     });
 
     for (const finding of checkFindings) {
@@ -120,7 +124,7 @@ function resolveRuntimePath(repoRoot: string, configuredPath: string): string {
 }
 
 function packageVersion(): string {
-  return '0.1.0';
+  return '0.1.1';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

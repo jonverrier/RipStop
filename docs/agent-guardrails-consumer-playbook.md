@@ -30,17 +30,17 @@ The package gives you:
 In exchange, your team commits to:
 
 - **Respond to warn-only findings within the release they appear.** A check
-  that's `warn` today will be `enforce` in a future release. If you ignore
-  warnings, your CI breaks on upgrade.
+that's `warn` today will be `enforce` in a future release. If you ignore
+warnings, your CI breaks on upgrade.
 - **Justify and log every `mode: off` override.** Disabling a check
-  silently is the failure mode this whole system is designed to prevent.
+silently is the failure mode this whole system is designed to prevent.
 - **Treat bypasses as exceptional, not routine.** Repeated bypasses on the
-  same check are a signal to fix the underlying problem or request a config
-  change centrally.
+same check are a signal to fix the underlying problem or request a config
+change centrally.
 - **Pin the package version and upgrade deliberately.** Auto-upgrade on
-  major versions will break your CI. That's not a bug.
+major versions will break your CI. That's not a bug.
 - **Report false positives back centrally** rather than silently exempting
-  them locally. One team's false positive is everyone's false positive.
+them locally. One team's false positive is everyone's false positive.
 
 These obligations are formalised in §21 of the spec. The rest of this
 document is how to meet them without it being a chore.
@@ -74,35 +74,40 @@ ripstop version
 Four hook files, all one line each. Husky manages them in Node repos; in
 non-Node repos they live in `.git/hooks/` directly.
 
-**`.husky/pre-commit`** — for staged-content checks such as `pii`,
+`**.husky/pre-commit**` — for staged-content checks such as `pii`,
 `test-skip`, `dependency-guard`, `reflog-witness`, and
 `working-tree-guard` (orphan detection):
+
 ```bash
 #!/usr/bin/env sh
 npx ripstop check --staged --trigger pre-commit
 ```
 
-**`.husky/commit-msg`** — for trailer-based checks such as `path-guard`
+`**.husky/commit-msg**` — for trailer-based checks such as `path-guard`
 and bypass reason validation. `pre-commit` cannot do this reliably because
 Git has not created the final commit message yet:
+
 ```bash
 #!/usr/bin/env sh
 npx ripstop check --staged --trigger commit-msg --commit-msg-file "$1"
 ```
 
-**`.husky/pre-push`** — for `history-guard` and `reflog-witness`:
+`**.husky/pre-push**` — for `history-guard` and `reflog-witness`:
+
 ```bash
 #!/usr/bin/env sh
 npx ripstop check --trigger pre-push
 ```
 
-**`.husky/pre-rebase`** — for `history-guard` and `reflog-witness`:
+`**.husky/pre-rebase**` — for `history-guard` and `reflog-witness`:
+
 ```bash
 #!/usr/bin/env sh
 npx ripstop check --trigger pre-rebase
 ```
 
-**`.github/workflows/guardrails.yml`** (or your CI equivalent):
+`**.github/workflows/guardrails.yml**` (or your CI equivalent):
+
 ```yaml
 name: guardrails
 on: [pull_request]
@@ -121,6 +126,23 @@ For non-Node repos, replace `npx ripstop` with the binary path
 
 That's the entire wiring. You should never need to edit these files
 again.
+
+### 3.2a Generate `RIPSTOP.md` for agents
+
+After `.guardrails.yaml` exists, generate a short, auto-updated summary
+that agents load at session start (see `docs/per-agent-config.md` for
+one-line inclusion in Claude Code, Cursor, Codex, and Amazon Q):
+
+```bash
+npx ripstop generate-md
+git add RIPSTOP.md
+```
+
+Add a single reference from your `AGENTS.md` (or equivalent) to
+`RIPSTOP.md` so the active guardrails sit in Layer 1 context. The
+`ripstop-md-fresh` check (when enabled) fails if the file is missing or
+stale relative to the resolved configuration — regenerate with the same
+command after any config change.
 
 ### 3.3 Pick a preset
 
@@ -157,9 +179,9 @@ Preset choice:
 **Tier** drives governance behaviour throughout this playbook:
 
 - **Tier 1** — production, customer-facing or revenue-bearing. Strictest
-  governance.
+governance.
 - **Tier 2** — production, internal-facing or supporting. Standard
-  governance.
+governance.
 - **Tier 3** — non-production, sandboxes, experiments. Light governance.
 
 If unsure, ask the platform team rather than guessing. Misclassification
@@ -180,20 +202,20 @@ of findings; that's why we start in warn mode.
 Sort findings into four buckets:
 
 1. **Real PII or real policy violations** → fix them. This is what the
-   package is for.
+  package is for.
 2. **Test fixtures with synthetic data** → add a path exemption:
-   ```yaml
+  ```yaml
    pii:
      mode: warn
      exemptions:
        - path: "test/fixtures/**"
          reason: "Synthetic test data, reviewed by [name] on [date]"
-   ```
+  ```
 3. **False positives** (regex too aggressive on legitimate code) → **report
-   centrally first** (see §8). Add a local exemption only if you need to
+  centrally first** (see §8). Add a local exemption only if you need to
    ship before the central fix lands.
 4. **Findings on third-party code you don't control** (vendored libs,
-   generated code) → path exemption with reason.
+  generated code) → path exemption with reason.
 
 After triage, run `--all` again. The remaining findings should be ones you
 intend to fix, not ones you're going to live with.
@@ -232,12 +254,13 @@ A finding looks like this:
 ```
 
 Five things to read:
+
 - **Check** (`pii`) — which check fired
 - **Severity** (`error`) — fail vs. warn
 - **Location** (`src/handlers/customer.ts:42`) — where to look
 - **Message** — what's wrong
 - **Rule ID** (`pii.msisdn`) — stable identifier; use this when reporting
-  false positives or requesting central changes
+false positives or requesting central changes
 
 ### 4.2 Triaging false positives
 
@@ -247,18 +270,11 @@ correct workflow:
 
 1. Confirm it's a false positive by reading the rule and the matched line.
 2. Open an issue against the central library repo with: rule ID, the
-   matching string (redacted if needed), the surrounding code context, and
+  matching string (redacted if needed), the surrounding code context, and
    why it's a false positive.
 3. The platform team responds within the SLA (see §4.5).
 4. **If you need to ship before the fix lands**, add a local exemption
-   *referencing the issue*:
-   ```yaml
-   pii:
-     exemptions:
-       - path: "src/handlers/customer.ts"
-         lines: [42]
-         reason: "False positive — see GUARD-123"
-   ```
+  *referencing the issue*:
 5. When the central fix lands, remove the local exemption.
 
 The "reason" field is not bureaucratic theatre. It is what your future self
@@ -269,11 +285,11 @@ or your security auditor reads when asking "why is this disabled?"
 Some patterns are genuinely repo-specific. Some are not. Use this rule:
 
 - **If the pattern would be useful in another team's repo → request it
-  centrally.** Internal account ID formats, organisation-wide PII patterns,
-  shared infrastructure markers all belong in a preset, not in your config.
+centrally.** Internal account ID formats, organisation-wide PII patterns,
+shared infrastructure markers all belong in a preset, not in your config.
 - **If the pattern is genuinely local → add it via `extra_patterns`.**
-  References to a deprecated internal library only your repo uses, a
-  legacy ID format only your domain has, etc.
+References to a deprecated internal library only your repo uses, a
+legacy ID format only your domain has, etc.
 
 When in doubt, request it centrally and let the platform team decline.
 Adding to a preset is cheap; removing a duplicated pattern from twenty
@@ -284,14 +300,16 @@ repos is expensive.
 There are two kinds:
 
 **Local exemption** (in your `.guardrails.yaml`):
+
 - Path-based or line-based
 - Always requires `reason`
 - Visible in the audit log
 - No central approval required for `warn` mode
 - For `enforce` mode in `tier: 1` repos: requires platform-team sign-off
-  via PR review (see §6)
+via PR review (see §6)
 
 **Central exemption** (a change to a preset):
+
 - Used when the same exemption is right for many repos
 - Requested via the central library's issue tracker
 - Reviewed by the platform team
@@ -299,14 +317,14 @@ There are two kinds:
 ### 4.5 SLAs from the platform team
 
 - **False positive in default pattern set:** acknowledged within 1 working
-  day, fix or workaround within 5 working days.
+day, fix or workaround within 5 working days.
 - **New pattern request:** acknowledged within 3 working days, decided
-  within 10 working days.
+within 10 working days.
 - **New check request:** acknowledged within 5 working days, decision
-  (yes / no / later) within one quarterly planning cycle.
+(yes / no / later) within one quarterly planning cycle.
 - **Security-impacting issue** (a finding type the package missed that it
-  should have caught): treat as P2, acknowledged same day, fix targeted
-  within 5 working days.
+should have caught): treat as P2, acknowledged same day, fix targeted
+within 5 working days.
 
 If the SLA isn't being met, escalate via §10.
 
@@ -334,7 +352,7 @@ PR #1847 within 24h.
 Both lines are required. The check name must match a rule that fired.
 The reason must be specific, time-bounded, and reference a ticket.
 
-**`history-guard` has its own alias.** Force-pushes and rebases of
+`**history-guard` has its own alias.** Force-pushes and rebases of
 shared history use a separate trailer because reviewers want to spot
 them at a glance:
 
@@ -374,9 +392,9 @@ across repos monthly and surfaces patterns.
 
 - Same author bypassing the same rule more than twice in a quarter
 - Any rule bypassed by more than three teams in a month (suggests the rule
-  is mis-tuned)
+is mis-tuned)
 - Bypasses without a ticket reference (should not be possible; if they
-  are, it's a bug)
+are, it's a bug)
 - Bypasses on `tier: 1` repos always go to a human reviewer
 
 ### 5.4 Escalation if bypass is denied or contested
@@ -396,7 +414,7 @@ means a check is silently not running.
 
 - Set `mode: warn` on any check (downgrading from enforce)
 - Add path or line exemptions in `tier: 2` and `tier: 3` repos with a
-  `reason`
+`reason`
 - Add `extra_patterns` (additive, never disables anything)
 
 ### 6.2 What requires platform-team sign-off
@@ -413,6 +431,7 @@ estate-wide?), expiry date or condition for re-enabling.
 ### 6.3 What the central team monitors
 
 Quarterly, the platform team reviews:
+
 - All `mode: off` overrides across the estate
 - All exemptions older than 6 months (are they still needed?)
 - Repos whose `.guardrails.yaml` significantly diverges from their preset
@@ -455,13 +474,14 @@ A minor version may add new checks in `warn` mode. When a minor lands:
 1. Merge the upgrade PR.
 2. Run `ripstop check --all` locally.
 3. If new findings appear, triage them the same way you triaged onboarding
-   findings (§3.5).
+  findings (§3.5).
 4. The new check will flip to `enforce` in the next major. **You have one
-   release cycle to respond.** Do not let warn findings accumulate.
+  release cycle to respond.** Do not let warn findings accumulate.
 
 ### 7.3 Migrating across a major version
 
 A major version means at least one of:
+
 - A previously-passing repo may now fail
 - The config schema has changed
 - A check's semantics have changed
@@ -583,8 +603,7 @@ Three categories, each with a different recovery path:
 commit objects still exist in `.git/objects/` until garbage collection.
 Recoverable via reflog and direct SHA checkout.
 
-**Lost staged work** (uncommitted but staged changes wiped by `reset
---hard` or `checkout`). Staged blobs are stored in `.git/objects/` and
+**Lost staged work** (uncommitted but staged changes wiped by `reset --hard` or `checkout`). Staged blobs are stored in `.git/objects/` and
 referenced by the index until the next commit; usually recoverable via
 `git fsck --lost-found`.
 
@@ -677,7 +696,7 @@ file changes independent of Git. If the file you've lost was open in
 your editor recently:
 
 - VS Code: `Timeline` view in the Explorer panel, or
-  `~/.config/Code/User/History/`
+`~/.config/Code/User/History/`
 - JetBrains: right-click file → `Local History` → `Show History`
 - Vim / Neovim with persistent undo: `:earlier 1h`
 
@@ -689,17 +708,15 @@ actively editing.
 Once you've recovered (or accepted the loss), three follow-ups:
 
 1. **Capture what happened in the audit log.** Add a manual entry to
-   the configured audit log describing the incident, what was lost,
+  the configured audit log describing the incident, what was lost,
    what was recovered, and how. This becomes evidence in the next
    quarterly review.
-
 2. **Identify which guardrail would have prevented it.** Was
-   `history-guard` mis-configured? Was the agent harness not wired to
+  `history-guard` mis-configured? Was the agent harness not wired to
    call `working-tree-guard snapshot`? Was the agent running with
    `--no-verify`? Whatever the gap, fix it for next time.
-
 3. **Report it centrally.** Even if the recovery was clean, the
-   platform team wants to know. Patterns across teams drive the next
+  platform team wants to know. Patterns across teams drive the next
    release. File an incident report via the standard channel.
 
 ### 10.9 Things that look recoverable but aren't
@@ -707,13 +724,13 @@ Once you've recovered (or accepted the loss), three follow-ups:
 Setting honest expectations:
 
 - **Unstaged changes destroyed >2 weeks ago** with no snapshots, no
-  editor history, no filesystem backup. The objects have been garbage
-  collected. They're gone.
+editor history, no filesystem backup. The objects have been garbage
+collected. They're gone.
 - **Force-pushed commits older than the remote's reflog retention.**
-  GitHub keeps reflog ~90 days; self-hosted may be shorter or longer.
-  Past that window, server-side recovery is impossible.
+GitHub keeps reflog ~90 days; self-hosted may be shorter or longer.
+Past that window, server-side recovery is impossible.
 - **Files deleted via `rm -rf` outside Git.** Git never saw them. Only
-  filesystem-level snapshots help here.
+filesystem-level snapshots help here.
 
 The lesson, repeated: prevention is cheaper than recovery, and recovery
 requires preparation that has to be in place *before* the incident.
@@ -726,14 +743,14 @@ them on.
 
 In order:
 
-1. **`#guardrails` channel** — quick questions, peer help.
+1. `**#guardrails` channel** — quick questions, peer help.
 2. **Office hours** — design issues, advice, not-time-sensitive frustrations.
 3. **GitHub issue, P3** — false positives, feature requests, docs.
 4. **GitHub issue, P2** — blocking your team, workaround exists.
 5. **Platform team lead, direct message** — blocking your team, no
-   workaround, time-sensitive.
+  workaround, time-sensitive.
 6. **Eng leadership** — only when (5) hasn't responded within one working
-   day on a P1.
+  day on a P1.
 
 Don't skip levels unless it's genuinely urgent. Don't sit on a P1 because
 you're unsure it qualifies — if you're unsure, it does.
@@ -749,11 +766,11 @@ A team that's running this well has these properties:
 - `mode: off` appears nowhere in the config
 - Exemptions have specific, recent, traceable reasons
 - New minor versions get triaged within their release cycle, not
-  accumulated
+accumulated
 - Findings on PRs get fixed, not bypassed
 - Your AGENTS.md and your `.guardrails.yaml` agree about what matters
 - `reflog-witness` is on, and the team has done at least one practice
-  recovery so the runbook isn't being read for the first time mid-incident
+recovery so the runbook isn't being read for the first time mid-incident
 
 A team that's running this badly — and the platform team will notice — has
 the inverse. Don't be that team.
@@ -773,7 +790,7 @@ Trivial. Five minutes. No code.
 In `.guardrails.yaml`, you can:
 
 - Change `mode` per check (`enforce`, `warn`, `off` — with governance
-  caveats from §6 for `off`)
+caveats from §6 for `off`)
 - Narrow `triggers` so a check only runs in specific contexts:
   ```yaml
   checks:
@@ -787,11 +804,23 @@ In `.guardrails.yaml`, you can:
 - Add `extra_patterns` for repo-local needs (`pii` only)
 - Add path or line `exemptions` with a `reason`
 - Override individual fields from the inherited preset (different
-  protected branches, different ticket regex, etc.)
+protected branches, different ticket regex, etc.)
 - Pick a different preset entirely
 
 This is the 95% case. Most "I want different behaviour" requests
 resolve here without anyone writing code.
+
+### 13.1.5 Level 1.5 — keep `RIPSTOP.md` fresh
+
+If you use `ripstop generate-md` (see §3.2a):
+
+- Regenerate after **every** meaningful `.guardrails.yaml` change.
+- Prefer a **small, atomic commit** that only touches config + `RIPSTOP.md`,
+  separate from feature work, so reviewers see drift fixes clearly.
+- When `ripstop-md-fresh` is enabled, forgetting regeneration **fails the
+  hook or CI on purpose** — treat that as a feature, not friction.
+- **Do not hand-edit** `RIPSTOP.md`. If the generated text is wrong,
+  fix `.guardrails.yaml` (or the generator); the file is derived.
 
 ### 13.2 Level 2 — Use a plugin package
 
@@ -875,7 +904,7 @@ broader gap. Use this rule:
 - **One repo finds it useful** → keep it local.
 - **A second repo wants it** → propose making it a plugin.
 - **A third repo wants it** → it should probably be in the central
-  library or a preset.
+library or a preset.
 
 The platform team's quarterly retrospective is the natural place to
 surface useful local checks. A check that has spread to ten repos as
@@ -887,14 +916,14 @@ success of the local-check feature.
 Some defaults exist for reasons that are not always obvious. Before
 overriding these, ask centrally:
 
-- **`reflog-witness` mode.** It's near-zero cost and the data has
-  saved engagements. `off` requires platform-team sign-off (§6).
-- **`history-guard` `protected_branches`.** Removing entries here is
-  rare and almost always a mistake. If `main` shouldn't be protected
-  in your repo, something else is wrong.
+- `**reflog-witness` mode.** It's near-zero cost and the data has
+saved engagements. `off` requires platform-team sign-off (§6).
+- `**history-guard` `protected_branches`.** Removing entries here is
+rare and almost always a mistake. If `main` shouldn't be protected
+in your repo, something else is wrong.
 - **Default `pii` patterns from the preset.** Disabling a default
-  pattern is fine for a confirmed false positive, but should be
-  reported centrally first (§4.2).
+pattern is fine for a confirmed false positive, but should be
+reported centrally first (§4.2).
 
 When in doubt, the rule is: tune locally if it's a fit-to-context
 concern, escalate centrally if it's a fit-to-system concern.

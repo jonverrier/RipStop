@@ -16,12 +16,12 @@ made the commit.
 The package solves three problems:
 
 1. **AGENTS.md and equivalents are advisory.** Agents drift, jailbreaks happen,
-   and a different model tomorrow won't read yesterday's prose. We need checks
+  and a different model tomorrow won't read yesterday's prose. We need checks
    that *fail the build* rather than ones that *ask nicely*.
 2. **Duplicating guardrail logic across repos rots fast.** Within a quarter,
-   every repo's PII regex has diverged. We want one library, many thin shims.
+  every repo's PII regex has diverged. We want one library, many thin shims.
 3. **Telco repos are polyglot.** Java, Python, TypeScript, Go all coexist.
-   Guardrails must work without forcing a runtime onto every build agent.
+  Guardrails must work without forcing a runtime onto every build agent.
 
 ---
 
@@ -32,31 +32,33 @@ The package solves three problems:
 - One versioned library, consumed identically across all repos.
 - Two-line wiring per repo (one hook entry, one config file).
 - Cross-language: works in TS, Java, Python, Go repos with no language runtime
-  beyond what the package itself ships with.
+beyond what the package itself ships with.
 - Cross-agent: every check enforced regardless of which AI tool made the commit.
 - Config-driven: new checks can be rolled out as warn-only before enforcing.
 - Auditable: every failure produces a structured record suitable for security
-  review.
+review.
 
 ### Non-goals
 
 - Static analysis or type checking — that's the existing toolchain's job.
 - Runtime defence (sandboxing, network egress control) — that's Layer 3 in the
-  guardrails model and lives in agent harness configs, not here.
+guardrails model and lives in agent harness configs, not here.
 - Replacing existing secret scanners (gitleaks, trufflehog). We invoke them; we
-  don't reinvent them.
+don't reinvent them.
 - Policy authoring UI. Config is YAML in the repo, edited by humans.
 
 ---
 
 ## 3. Personas
 
-| Persona | What they need from this package |
-|---|---|
-| Repo owner (engineer) | Wire it in once, get sensible defaults, override locally where genuinely needed |
-| Platform team | Centrally update checks and patterns; roll out new checks safely across the estate |
-| Security / compliance | Evidence that checks ran, what they caught, and an audit trail of bypasses |
-| AI coding agent | A clear, machine-readable error when it does something the org disallows |
+
+| Persona               | What they need from this package                                                   |
+| --------------------- | ---------------------------------------------------------------------------------- |
+| Repo owner (engineer) | Wire it in once, get sensible defaults, override locally where genuinely needed    |
+| Platform team         | Centrally update checks and patterns; roll out new checks safely across the estate |
+| Security / compliance | Evidence that checks ran, what they caught, and an audit trail of bypasses         |
+| AI coding agent       | A clear, machine-readable error when it does something the org disallows           |
+
 
 ---
 
@@ -102,11 +104,11 @@ sandboxing (Layer 3), and is most effective deployed alongside both.
 The package ships in two forms from the same source tree:
 
 - **npm package** (`@jonverrier/ripstop`) — for TS/JS-native repos.
-  Pinned in `devDependencies`, invoked via `npx`.
+Pinned in `devDependencies`, invoked via `npx`.
 - **Standalone binary** — produced by `bun build --compile`, one binary per
-  platform (`linux-x64`, `linux-arm64`, `darwin-arm64`, `win-x64`). Published
-  to the firm's / telco's internal artefact store. For repos that can't or
-  won't install Node.
+platform (`linux-x64`, `linux-arm64`, `darwin-arm64`, `win-x64`). Published
+to the firm's / telco's internal artefact store. For repos that can't or
+won't install Node.
 
 A `setup` script in the install docs picks the right form based on the repo's
 existing toolchain. The CLI binary is named `ripstop`, with
@@ -119,8 +121,7 @@ viable.
 
 ### Cross-compilation
 
-All four target binaries are produced from a single host via `bun build
---compile --target=<target>`. No per-platform build infrastructure is
+All four target binaries are produced from a single host via `bun build --compile --target=<target>`. No per-platform build infrastructure is
 required. The release pipeline runs on one CI host and emits binaries for
 `linux-x64`, `linux-arm64`, `darwin-arm64`, and `windows-x64`.
 
@@ -142,10 +143,11 @@ binaries are downloaded via a browser. The install documentation calls
 this out explicitly with the workaround steps.
 
 For v1.1, binaries are signed:
+
 - **Windows**: signed under the firm's or the telco's existing code-signing
-  certificate (Authenticode).
+certificate (Authenticode).
 - **macOS**: signed with an Apple Developer ID and notarised via Apple's
-  notary service, with the notarisation ticket stapled to the binary.
+notary service, with the notarisation ticket stapled to the binary.
 
 Code signing is on the v1.1 backlog rather than v1.0 because the
 certificate procurement and pipeline integration is half a day of work
@@ -157,10 +159,10 @@ distribution (the primary path) is unaffected by signing status.
 
 - Strict semver.
 - **Major bump** for: any new check enabled by default, any change to existing
-  check semantics that could newly fail a previously-passing repo, any breaking
-  config schema change.
+check semantics that could newly fail a previously-passing repo, any breaking
+config schema change.
 - **Minor bump** for: new checks shipped disabled-by-default, new config keys
-  with safe defaults, new presets.
+with safe defaults, new presets.
 - **Patch bump** for: bug fixes, performance, error message improvements.
 
 This discipline is non-negotiable. A library that breaks thirty repos on a
@@ -224,10 +226,10 @@ agent-guardrails/
 Two log files in `.guardrails/` of the consuming repo, with distinct
 purposes:
 
-- **`audit.jsonl`** — findings, bypasses, exemptions. Read by humans and
-  reviewers. The compliance trail.
-- **`witness.jsonl`** — reflog snapshots, HEAD SHAs, stash inventory.
-  Read forensically when something has gone wrong. The recovery trail.
+- `**audit.jsonl**` — findings, bypasses, exemptions. Read by humans and
+reviewers. The compliance trail.
+- `**witness.jsonl**` — reflog snapshots, HEAD SHAs, stash inventory.
+Read forensically when something has gone wrong. The recovery trail.
 
 Both are append-only by convention; the package never edits or deletes
 existing entries.
@@ -338,15 +340,15 @@ The `repo.tier` field drives governance behaviour and is referenced
 throughout this spec and the consumer playbook. Tiers are:
 
 - **Tier 1** — production, customer-facing or revenue-bearing. Billing,
-  customer data, network config in production. Strictest governance:
-  exemptions need platform-team sign-off; bypasses are reviewed weekly;
-  overrides require an explicit expiry condition.
+customer data, network config in production. Strictest governance:
+exemptions need platform-team sign-off; bypasses are reviewed weekly;
+overrides require an explicit expiry condition.
 - **Tier 2** — production, internal-facing or supporting. Internal
-  tooling that runs in production, non-customer-facing services.
-  Standard governance.
+tooling that runs in production, non-customer-facing services.
+Standard governance.
 - **Tier 3** — non-production. Sandboxes, experiments, scratch repos.
-  Light governance; the package still runs but the consumer contract
-  obligations are advisory.
+Light governance; the package still runs but the consumer contract
+obligations are advisory.
 
 Tier is declared in `.guardrails.yaml` and verified by the platform team
 during onboarding. Misclassification is itself a finding the platform
@@ -358,41 +360,40 @@ Two trailers exist for historical and domain-specific reasons, but they
 are the same mechanism with different prefixes:
 
 - `GUARDRAILS-BYPASS: <rule-id>` — the general-purpose bypass, applies
-  to any check.
+to any check.
 - `HISTORY-OVERRIDE: <reason>` — equivalent to
-  `GUARDRAILS-BYPASS: history-guard`, kept as an alias because
-  history-rewriting operations are conceptually distinct enough that
-  reviewers want to spot them at a glance.
+`GUARDRAILS-BYPASS: history-guard`, kept as an alias because
+history-rewriting operations are conceptually distinct enough that
+reviewers want to spot them at a glance.
 
-Both produce identical audit log entries (`type: bypass`, `rule:
-<rule-id>`). The consumer playbook §5 documents both with the same
+Both produce identical audit log entries (`type: bypass`, `rule: <rule-id>`). The consumer playbook §5 documents both with the same
 governance and review cadence. New rule-specific aliases require
 central approval; ad-hoc proliferation defeats the point.
 
 ### 7.3 Key behaviours
 
-- **`extends`** loads a preset from the package itself; repo config is
-  merged shallow-over-deep, with arrays replaced rather than concatenated
-  (predictable).
-- **`plugins`** loads additional checks from external packages. Each
-  plugin must export checks conforming to the §9 `Check` interface.
-  Plugins are loaded after presets and before local checks.
-- **`local_checks`** discovers check implementations in the consuming
-  repo. See §9.1 for the discovery contract.
-- **`mode`** has three values. `off` skips the check entirely; `warn`
-  runs it and reports findings but exits 0; `enforce` exits non-zero on
-  any finding.
-- **`triggers`** narrows when a check runs. Each check declares the set
-  of triggers it supports; consumers can narrow to a subset but not
-  expand. Valid triggers: `pre-commit`, `commit-msg`, `pre-push`,
-  `pre-rebase`, `pre-action` (harness-invoked), `ci`. Trailer-based
-  checks run in `commit-msg`; `pre-commit` does not have access to the
-  final commit message.
-- **`exemptions`** are explicit, scoped, and require a `reason`. They
-  are logged in the audit trail.
-- **`bypass`** allows a developer to commit despite a failure by
-  including the trailer in the commit message. Always logged. Repos can
-  disable this entirely.
+- `**extends`** loads a preset from the package itself; repo config is
+merged shallow-over-deep, with arrays replaced rather than concatenated
+(predictable).
+- `**plugins`** loads additional checks from external packages. Each
+plugin must export checks conforming to the §9 `Check` interface.
+Plugins are loaded after presets and before local checks.
+- `**local_checks**` discovers check implementations in the consuming
+repo. See §9.1 for the discovery contract.
+- `**mode**` has three values. `off` skips the check entirely; `warn`
+runs it and reports findings but exits 0; `enforce` exits non-zero on
+any finding.
+- `**triggers**` narrows when a check runs. Each check declares the set
+of triggers it supports; consumers can narrow to a subset but not
+expand. Valid triggers: `pre-commit`, `commit-msg`, `pre-push`,
+`pre-rebase`, `pre-action` (harness-invoked), `ci`. Trailer-based
+checks run in `commit-msg`; `pre-commit` does not have access to the
+final commit message.
+- `**exemptions**` are explicit, scoped, and require a `reason`. They
+are logged in the audit trail.
+- `**bypass**` allows a developer to commit despite a failure by
+including the trailer in the commit message. Always logged. Repos can
+disable this entirely.
 
 ---
 
@@ -459,12 +460,13 @@ agent-guardrails version
 ```
 
 Exit codes:
+
 - `0` — all enforced checks passed
 - `1` — one or more enforced checks failed
 - `2` — config error
 - `3` — internal error
 - `4` — recovery operation refused (e.g. `recover --apply` without
-  confirmation in a non-interactive context)
+confirmation in a non-interactive context)
 
 ---
 
@@ -540,12 +542,12 @@ Design notes:
 - `content` is lazy because some checks (path-guard) only need the path.
 - `Finding.ruleId` is stable across versions so audit logs are diffable.
 - Checks return findings; the runner decides whether to fail based on
-  `mode`. This lets us implement `--mode warn` without each check
-  re-implementing it.
+`mode`. This lets us implement `--mode warn` without each check
+re-implementing it.
 - `supportedTriggers` is the contract a check declares about where it
-  can fire; consumer config narrows but cannot expand this set.
+can fire; consumer config narrows but cannot expand this set.
 - `audit` and `witness` are passed in so checks never need to know the
-  log file paths directly.
+log file paths directly.
 
 ### 9.1 Local checks and plugins
 
@@ -615,14 +617,14 @@ export const checks = [currencyFormat, vatRate];
 **Discovery and validation:**
 
 - Local checks failing to load (syntax error, missing default export,
-  not satisfying the `Check` interface) cause a config error (exit 2).
-  Silent skip would hide bugs.
+not satisfying the `Check` interface) cause a config error (exit 2).
+Silent skip would hide bugs.
 - Plugin checks similarly cause exit 2 if the plugin export is malformed.
 - Name collisions across built-ins, plugins, and local checks resolve
-  in the order: built-ins → plugins → local. A local check named `pii`
-  would override the built-in. The CLI logs a warning when this
-  happens; it is not an error, because override is sometimes
-  intentional.
+in the order: built-ins → plugins → local. A local check named `pii`
+would override the built-in. The CLI logs a warning when this
+happens; it is not an error, because override is sometimes
+intentional.
 
 **Stewardship advice:** local checks earn their keep when a rule is
 genuinely repo-specific and unlikely to be useful elsewhere. If a check
@@ -643,6 +645,7 @@ preset; repos can add to it. Patterns have names so findings are
 attributable to specific rules.
 
 **Default patterns** (in `telco-generic` preset):
+
 - MSISDN-shaped: `\b(?:\+?44|0)7\d{9}\b` and international variants
 - IMSI: `\b\d{14,15}\b` near keywords like `imsi`, `subscriber`
 - ICCID: `\b89\d{17,19}\b`
@@ -650,6 +653,7 @@ attributable to specific rules.
 - UK postcode: standard pattern
 
 **Config:**
+
 ```yaml
 pii:
   mode: enforce
@@ -663,6 +667,7 @@ pii:
 ```
 
 **Output example:**
+
 ```
 ✗ pii [error] src/handlers/customer.ts:42
     Match: pattern "msisdn" — found "+447700900123"
@@ -685,6 +690,7 @@ An agent should not silently mutate them; a human must explicitly attest by
 adding `CHANGE-APPROVED: <ticket>` to the commit.
 
 **Config:**
+
 ```yaml
 path-guard:
   mode: enforce
@@ -706,6 +712,7 @@ agentic failure mode. Catching new skips at commit time is cheap and the
 signal is unambiguous.
 
 **Config:**
+
 ```yaml
 test-skip:
   mode: warn
@@ -727,6 +734,7 @@ deps are present and no file under `adr_path` is in the diff, fail.
 maintenance implications. They should not be added invisibly by an agent.
 
 **Config:**
+
 ```yaml
 dependency-guard:
   mode: enforce
@@ -755,6 +763,7 @@ which makes them genuinely enforceable on the client side. Server-side
 (it lives on the Git server, not the repo).
 
 **Config:**
+
 ```yaml
 history-guard:
   mode: enforce
@@ -770,6 +779,7 @@ history-guard:
 ```
 
 **Output example:**
+
 ```
 ✗ history-guard [error] push refused
     Force-push to protected branch "main" rejected.
@@ -802,6 +812,7 @@ is whether someone captured the SHAs *before* `git gc` reclaimed the
 unreferenced objects. This check is that capture.
 
 **Config:**
+
 ```yaml
 reflog-witness:
   mode: enforce             # 'off' is permitted but discouraged
@@ -810,8 +821,7 @@ reflog-witness:
   audit_log_path: ".git/ripstop/witness.jsonl"
 ```
 
-**Recovery workflow:** When work is lost, `agent-guardrails recover
---since <timestamp>` reads the witness log and prints the SHAs of HEAD
+**Recovery workflow:** When work is lost, `agent-guardrails recover --since <timestamp>` reads the witness log and prints the SHAs of HEAD
 and any stashes that existed at recent invocations. The user then uses
 standard Git recovery (`git fsck --lost-found`, `git reflog`,
 `git checkout <sha>`) to retrieve the work. Documented in the consumer
@@ -829,8 +839,7 @@ actions.
 
 *Pre-action mode* (invoked explicitly by an agent harness):
 `agent-guardrails snapshot` is called by the agent's tool-use harness
-before any operation that could destroy working-tree state — `git
-checkout`, `git reset --hard`, `git stash` without explicit restore intent,
+before any operation that could destroy working-tree state — `git checkout`, `git reset --hard`, `git stash` without explicit restore intent,
 `git clean`, or any file-write that would overwrite a dirty file. The
 command creates `.guardrails/snapshots/<timestamp>/` containing copies of
 all dirty files (modified and untracked) and emits the snapshot path to
@@ -863,6 +872,7 @@ filesystem-level snapshotting (Time Machine, `btrfs` snapshots, or an
 reach entirely.
 
 **Config:**
+
 ```yaml
 working-tree-guard:
   mode: enforce
@@ -873,6 +883,7 @@ working-tree-guard:
 ```
 
 **Output example (pre-action snapshot):**
+
 ```
 ℹ working-tree-guard [info] snapshot created
     Path: .guardrails/snapshots/2026-05-06T14-22-31Z/
@@ -881,6 +892,7 @@ working-tree-guard:
 ```
 
 **Output example (orphaned snapshot warning at commit time):**
+
 ```
 ⚠ working-tree-guard [warning] orphaned snapshot
     Snapshot from 2026-05-06T14:22:31Z (12 minutes ago) contains 3
@@ -899,8 +911,8 @@ Presets are YAML files shipped inside the package, referenced via
 **Presets in v1.0:**
 
 - `telco-generic` — sensible defaults, light PII, no domain-specific patterns
-- `telco-bss` — heavy PII (MSISDN, account IDs, addresses), billing-aware paths
-- `telco-network` — IMSI/IMEI/ICCID patterns, infra paths protected
+- `telco-bss` — extends `telco-generic` with stricter defaults (e.g. `ripstop-md-fresh`); add billing-specific PII patterns in repo overrides as needed
+- `telco-network` — extends `telco-generic` with stricter defaults; add IMSI/IMEI/ICCID patterns in repo overrides as needed
 - `internal-tooling` — minimal, mostly path-guard and test-skip
 
 ### 11.1 Preset check matrix
@@ -908,15 +920,18 @@ Presets are YAML files shipped inside the package, referenced via
 Default modes per preset. Consumers can narrow but the defaults set the
 baseline expectation.
 
-| Check | telco-generic | telco-bss | telco-network | internal-tooling |
-|---|---|---|---|---|
-| `pii` | warn | enforce | enforce | off |
-| `path-guard` | enforce | enforce | enforce | enforce |
-| `test-skip` | warn | warn | warn | warn |
-| `dependency-guard` | enforce | enforce | enforce | warn |
-| `history-guard` | enforce | enforce | enforce | enforce |
-| `reflog-witness` | enforce | enforce | enforce | enforce |
-| `working-tree-guard` | warn | enforce | enforce | warn |
+
+| Check                | telco-generic | telco-bss | telco-network | internal-tooling |
+| -------------------- | ------------- | --------- | ------------- | ---------------- |
+| `pii`                | warn          | enforce   | enforce       | off              |
+| `path-guard`         | enforce       | enforce   | enforce       | enforce          |
+| `test-skip`          | warn          | warn      | warn          | warn             |
+| `dependency-guard`   | enforce       | enforce   | enforce       | warn             |
+| `history-guard`      | enforce       | enforce   | enforce       | enforce          |
+| `reflog-witness`     | enforce       | enforce   | enforce       | enforce          |
+| `working-tree-guard` | warn          | enforce   | enforce       | warn             |
+| `ripstop-md-fresh`   | warn          | enforce   | enforce       | warn             |
+
 
 `reflog-witness` is `enforce` everywhere because the cost is near-zero
 and the value is forensic. `history-guard` is `enforce` everywhere
@@ -927,9 +942,7 @@ have no plausible PII surface.
 
 ### 11.2 Effective config and resolution
 
-A repo's effective config is `preset ⊕ plugins ⊕ local ⊕ repo
-overrides`, applied in that order. The CLI's `agent-guardrails explain
-<check> --resolved` prints the merged config for any single check so
+A repo's effective config is `preset ⊕ plugins ⊕ local ⊕ repo overrides`, applied in that order. The CLI's `agent-guardrails explain <check> --resolved` prints the merged config for any single check so
 devs can see exactly what's in effect, including which layer
 contributed which value.
 
@@ -941,14 +954,13 @@ contributed which value.
 
 Three reporters, selected via config or `--format`:
 
-- **`human`** (default) — coloured terminal output, grouped by file,
-  with rule IDs and remediation hints. Designed for the developer at
-  the keyboard.
-- **`json`** — one JSON object on stdout: `{ findings: [...],
-  summary: {...} }`. Designed for CI integration and downstream
-  tooling.
-- **`sarif`** — SARIF 2.1.0 output, suitable for GitHub Code Scanning.
-  Stretch for v1.0; nice-to-have for security team uptake.
+- `**human`** (default) — coloured terminal output, grouped by file,
+with rule IDs and remediation hints. Designed for the developer at
+the keyboard.
+- `**json`** — one JSON object on stdout: `{ findings: [...], summary: {...} }`. Designed for CI integration and downstream
+tooling.
+- `**sarif**` — SARIF 2.1.0 output, suitable for GitHub Code Scanning.
+Stretch for v1.0; nice-to-have for security team uptake.
 
 ### 12.2 Log files
 
@@ -959,14 +971,14 @@ the package never edits or deletes existing entries. Both paths configurable,
 but repos that choose a working-tree path must add the runtime directory to
 `.gitignore`.
 
-**`audit.jsonl`** — the compliance trail. Findings, bypasses,
+`**audit.jsonl**` — the compliance trail. Findings, bypasses,
 exemption uses, mode changes. One JSON object per relevant event.
 Read by humans, reviewers, and quarterly platform-team reviews.
 Schema includes: timestamp, version, repo, trigger, check, ruleId,
 severity, file, line, type (`finding | bypass | exemption | mode-change`),
 author, commit, reason (where applicable).
 
-**`witness.jsonl`** — the forensic recovery trail. Reflog snapshots,
+`**witness.jsonl**` — the forensic recovery trail. Reflog snapshots,
 HEAD SHAs, branch states, stash inventory, snapshot directory
 references. Written by `reflog-witness` on every invocation it's
 configured for. Read forensically by `agent-guardrails recover` and
@@ -988,9 +1000,9 @@ delete. The consumer playbook documents the rotation script.
 - **Config invalid** → exit 2 with a clear message pointing at the offending key.
 - **Preset not found** → exit 2 with available preset list.
 - **Regex compile error in `extra_patterns`** → exit 2 at config-load time,
-  not mid-run.
+not mid-run.
 - **Check throws unexpectedly** → caught at the runner level, reported as an
-  internal error, exit 3. One broken check does not skip the others.
+internal error, exit 3. One broken check does not skip the others.
 - **No staged files** (`--staged` mode) → exit 0 silently.
 - **Git not available / not in a repo** → exit 2 with diagnostic.
 
@@ -1004,59 +1016,61 @@ able to read the failure and fix it without a human translator.
 
 - The package never reads files outside `repoRoot`.
 - Regex patterns from config are screened before use and the default
-  pattern set avoids nested quantifiers known to cause catastrophic
-  backtracking. JavaScript `RegExp` has no native timeout; stronger isolation
-  requires a worker/process boundary and is a future hardening item.
+pattern set avoids nested quantifiers known to cause catastrophic
+backtracking. JavaScript `RegExp` has no native timeout; stronger isolation
+requires a worker/process boundary and is a future hardening item.
 - Both `audit.jsonl` and `witness.jsonl` are append-only by convention;
-  the package never edits or deletes existing entries. Truncation,
-  deletion, or out-of-band modification is detectable via line counts
-  and is surfaced as a finding by the platform team's quarterly review.
+the package never edits or deletes existing entries. Truncation,
+deletion, or out-of-band modification is detectable via line counts
+and is surfaced as a finding by the platform team's quarterly review.
 - Bypass usage is always logged with reason, regardless of config.
 - No network calls in the default check set. (Stretch checks that hit
-  external services — e.g. licence lookup — must be opt-in and
-  documented.)
+external services — e.g. licence lookup — must be opt-in and
+documented.)
 - **Local checks and plugins execute arbitrary TypeScript at load
-  time.** A malicious local check could, in principle, do anything the
-  package process can do (read files, make network calls, etc.). The
-  consumer is trusting their own check authors and their plugin
-  vendors, exactly as they trust their own dev dependencies. The
-  package does not sandbox check execution; this would be substantial
-  work for limited benefit, since the consumer already runs the
-  package's own code unsandboxed. The mitigation is supply-chain
-  hygiene: pin plugin versions, review local checks in PR, treat
-  plugin updates with the same care as any dev-dep update.
+time.** A malicious local check could, in principle, do anything the
+package process can do (read files, make network calls, etc.). The
+consumer is trusting their own check authors and their plugin
+vendors, exactly as they trust their own dev dependencies. The
+package does not sandbox check execution; this would be substantial
+work for limited benefit, since the consumer already runs the
+package's own code unsandboxed. The mitigation is supply-chain
+hygiene: pin plugin versions, review local checks in PR, treat
+plugin updates with the same care as any dev-dep update.
 - The package itself is not a security boundary. Layer 3 (agent harness
-  permissions, IAM, sandbox) is. This package is a tripwire, not a wall.
-  See §22.4 for the full layered model.
+permissions, IAM, sandbox) is. This package is a tripwire, not a wall.
+See §22.4 for the full layered model.
 
 ---
 
 ## 15. Testing approach
 
 - **Unit tests** per check, against synthetic file inputs. Aim for branch
-  coverage on the regex and diff logic.
+coverage on the regex and diff logic.
 - **Integration tests** spin up real Git repos in `test/fixtures/`, make
-  commits, and assert the CLI's exit code and output. Each check has at
-  least one happy-path and one failing fixture.
+commits, and assert the CLI's exit code and output. Each check has at
+least one happy-path and one failing fixture.
 - **Snapshot tests** on reporter output (human, JSON, SARIF) so format
-  regressions are caught.
+regressions are caught.
 - **No-Node end-to-end test** runs the bun-compiled binary against a
-  fixture repo in an environment with Node explicitly absent from `PATH`,
-  confirming the binary distribution has no hidden Node runtime
-  dependency. This is the test that catches "we accidentally relied on a
-  Node-only API" at release time rather than three weeks later when the
-  first Java repo tries to install. **Required before each release.**
+fixture repo in an environment with Node explicitly absent from `PATH`,
+confirming the binary distribution has no hidden Node runtime
+dependency. This is the test that catches "we accidentally relied on a
+Node-only API" at release time rather than three weeks later when the
+first Java repo tries to install. **Required before each release.**
 
 ### Platform coverage
 
 The package targets four platforms; testing strategy per platform:
 
-| Platform | Local dev testing | CI testing |
-|---|---|---|
-| `darwin-arm64` | Native on developer macOS machines | macOS runner on tagged releases |
-| `windows-x64` | Native on developer Windows machines | Windows runner on tagged releases |
-| `linux-x64` | WSL2 on developer Windows machines, against repos cloned inside the WSL filesystem (not `/mnt/c/...`) | Ubuntu runner on every PR |
-| `linux-arm64` | No local testing path on x64/arm-mac developer hardware | **Required CI job** on `ubuntu-22.04-arm` runner; no release ships without this passing |
+
+| Platform       | Local dev testing                                                                                     | CI testing                                                                              |
+| -------------- | ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------- |
+| `darwin-arm64` | Native on developer macOS machines                                                                    | macOS runner on tagged releases                                                         |
+| `windows-x64`  | Native on developer Windows machines                                                                  | Windows runner on tagged releases                                                       |
+| `linux-x64`    | WSL2 on developer Windows machines, against repos cloned inside the WSL filesystem (not `/mnt/c/...`) | Ubuntu runner on every PR                                                               |
+| `linux-arm64`  | No local testing path on x64/arm-mac developer hardware                                               | **Required CI job** on `ubuntu-22.04-arm` runner; no release ships without this passing |
+
 
 WSL2 is acceptable for `linux-x64` development testing because it runs a
 real Linux kernel and behaves identically to native Linux for the package's
@@ -1077,15 +1091,15 @@ windows and macOS runners run on tagged releases only (cost optimisation).
 ## 16. Build & release pipeline
 
 - **CI:** lint → typecheck → unit → integration → snapshot → linux-x64 e2e
-  → linux-arm64 e2e
+→ linux-arm64 e2e
 - **Release:** triggered by tag matching `v*.*.*`. Cross-compiles all four
-  binaries via `bun build --compile --target=<target>` from a single
-  Ubuntu runner, runs no-Node e2e against each, generates SHA-256
-  checksums, publishes to npm, uploads binaries + checksums to internal
-  artefact store, builds container image (stretch), generates changelog
-  from conventional commits.
+binaries via `bun build --compile --target=<target>` from a single
+Ubuntu runner, runs no-Node e2e against each, generates SHA-256
+checksums, publishes to npm, uploads binaries + checksums to internal
+artefact store, builds container image (stretch), generates changelog
+from conventional commits.
 - **Pre-release:** every merge to `main` publishes a `0.0.0-<sha>` package
-  for internal testing.
+for internal testing.
 
 The release runner does not need to be platform-matched to the binaries it
 produces — Bun cross-compiles. A single Ubuntu runner emits all four.
@@ -1097,10 +1111,10 @@ produces — Bun cross-compiles. A single Ubuntu runner emits all four.
 A short, separate doc; summarised here:
 
 1. **Pilot repo** — pick one repo with an engaged owner. Install in `warn`
-   mode for all checks. Run for a week. Tune patterns and exemptions.
+  mode for all checks. Run for a week. Tune patterns and exemptions.
 2. **Flip to `enforce`** on the pilot. Confirm the developer experience.
 3. **Roll out to peer repos** in `warn` mode. Use the audit logs to identify
-   the most common findings; clean those up before flipping.
+  the most common findings; clean those up before flipping.
 4. **Estate-wide enforce** for the original check set.
 5. **New checks** ship in subsequent minor releases, always `warn` first.
 
@@ -1112,12 +1126,12 @@ Three checks fully enforced beat ten checks half-adopted.
 ## 18. Out of scope (for v1.0)
 
 - IDE integration. (Linters already handle in-editor feedback; we're at the
-  commit boundary deliberately.)
+commit boundary deliberately.)
 - A web dashboard for findings. Audit logs go to standard tooling.
 - Auto-fix. Some findings are auto-fixable in principle (redact a regex
-  match), but the policy implications are subtle. Defer.
+match), but the policy implications are subtle. Defer.
 - Cross-repo aggregation. The audit log is per-repo for now; central
-  aggregation is a future platform-team concern.
+aggregation is a future platform-team concern.
 
 ---
 
@@ -1126,32 +1140,32 @@ Three checks fully enforced beat ten checks half-adopted.
 The package ships when:
 
 1. The four foundational checks (pii, path-guard, test-skip,
-   dependency-guard) work against the integration test fixtures.
+  dependency-guard) work against the integration test fixtures.
 2. The two history-protection checks (history-guard, reflog-witness) work
-   against the integration test fixtures, including pre-push and
+  against the integration test fixtures, including pre-push and
    pre-rebase hook integration.
 3. The CLI runs in `--staged`, `--all`, and `--diff` modes, plus the
-   `snapshot` and `recover` subcommands required by working-tree-guard.
+  `snapshot` and `recover` subcommands required by working-tree-guard.
 4. Both npm and bun-compiled binary distributions are published.
 5. Binaries exist for all four targets: `linux-x64`, `linux-arm64`,
-   `darwin-arm64`, `windows-x64`.
+  `darwin-arm64`, `windows-x64`.
 6. The no-Node e2e test passes against the `linux-x64` and `linux-arm64`
-   binaries in CI.
+  binaries in CI.
 7. `linux-x64` is verified locally via WSL2 by at least one developer
-   before release.
+  before release.
 8. `telco-generic` and `telco-bss` presets are complete and exercised in
-   tests.
+  tests.
 9. One real telco repo has it installed in `warn` mode and is producing
-   audit and witness logs.
+  audit and witness logs.
 10. `docs/per-agent-config.md` covers Claude Code, Cursor, Codex, and
-    Amazon Q, including the working-tree-guard wiring for each.
+  Amazon Q, including the working-tree-guard wiring for each.
 11. `agent-guardrails explain --resolved` produces correct merged config.
 12. The README's quick-start works on a fresh machine in under five
-    minutes.
+  minutes.
 13. The install documentation explicitly notes the unsigned-binary
-    warnings on Windows and macOS, with workaround steps.
+  warnings on Windows and macOS, with workaround steps.
 14. §22 — *What the package can and cannot prevent* — is reviewed and
-    accepted by the engaging client's security stakeholder before
+  accepted by the engaging client's security stakeholder before
     release. This avoids the package being mis-sold internally.
 
 `working-tree-guard` may ship in v1.0 or v1.1 depending on time
@@ -1166,16 +1180,16 @@ v1.0.
 For two AI-augmented engineers over four working days:
 
 - **Day 1:** scaffold, config loader, CLI skeleton, check interface, two
-  checks end-to-end (`pii`, `path-guard`). Reflog-witness implemented
-  alongside the audit log infrastructure since they share plumbing.
+checks end-to-end (`pii`, `path-guard`). Reflog-witness implemented
+alongside the audit log infrastructure since they share plumbing.
 - **Day 2:** remaining foundational checks (`test-skip`,
-  `dependency-guard`), `history-guard` with pre-push and pre-rebase hook
-  integration, presets, reporters (human + JSON).
+`dependency-guard`), `history-guard` with pre-push and pre-rebase hook
+integration, presets, reporters (human + JSON).
 - **Day 3:** bun-compiled binaries, npm publish dry-run, integration
-  tests including the no-Node e2e, per-agent docs.
+tests including the no-Node e2e, per-agent docs.
 - **Day 4:** install in pilot telco repo, tune patterns, gather first
-  audit and witness logs, polish docs, demo. Working-tree-guard
-  prototype if time remains; otherwise scoped to v1.1.
+audit and witness logs, polish docs, demo. Working-tree-guard
+prototype if time remains; otherwise scoped to v1.1.
 
 SARIF reporter, container image, `--explain --resolved`, and
 working-tree-guard are stretch. Cut them before cutting test coverage,
@@ -1202,34 +1216,28 @@ meet it in practice.
 A team that has installed `agent-guardrails` agrees to:
 
 1. **Respond to warn-only findings within one release cycle.** Checks that
-   ship in `warn` mode are scheduled to flip to `enforce` in the next
+  ship in `warn` mode are scheduled to flip to `enforce` in the next
    major. Accumulating warn findings is the path to broken CI.
-
 2. **Provide a `reason` on every exemption and override.** The reason must
-   be specific, dated where relevant, and traceable. Empty or boilerplate
+  be specific, dated where relevant, and traceable. Empty or boilerplate
    reasons (`"legacy"`, `"TODO"`) are not valid; the package will reject
    them in a future release.
-
 3. **Use bypass for incidents, not disagreements.** A bypass is a logged
-   admission that a finding is correct but the commit must land anyway.
+  admission that a finding is correct but the commit must land anyway.
    Repeated bypasses on the same rule by the same team are a signal to
    raise the underlying issue centrally, not to keep bypassing.
-
 4. **Pin the package version explicitly.** Auto-merging guardrail upgrades
-   on a major version boundary is not supported. Renovate / Dependabot
+  on a major version boundary is not supported. Renovate / Dependabot
    configurations must require human review.
-
 5. **Report false positives back centrally before working around them.**
-   Local exemptions for false positives are permitted as a stop-gap, but
+  Local exemptions for false positives are permitted as a stop-gap, but
    only with a reference to a filed issue. The audit process flags
    exemptions that lack issue references.
-
 6. **Do not edit the audit log.** The log is append-only by convention and
-   evidence in security review. Deleting entries is a violation of the
+  evidence in security review. Deleting entries is a violation of the
    contract.
-
 7. **Surface significant configuration drift for review.** A repo whose
-   `.guardrails.yaml` has more lines of override than lines of preset
+  `.guardrails.yaml` has more lines of override than lines of preset
    reference is materially diverging from the estate; the platform team
    reviews these quarterly and may request consolidation.
 
@@ -1239,13 +1247,13 @@ Symmetrically, the team maintaining the package agrees to:
 
 1. **Honour the SLAs defined in the consumer playbook §4.5.**
 2. **Ship new checks in `warn` mode.** No previously-passing repo fails on
-   a minor version bump.
+  a minor version bump.
 3. **Document migration steps in every major release.**
 4. **Run a quarterly retrospective** with findings, false-positive rates,
-   and direction.
+  and direction.
 5. **Maintain office hours** for design discussions and consumer feedback.
 6. **Respect the consumer's right to override** in scoped, justified
-   cases. The package is opinionated; it is not authoritarian.
+  cases. The package is opinionated; it is not authoritarian.
 
 ### 21.3 What invalidates the contract
 
@@ -1285,19 +1293,19 @@ Failures the package catches with high confidence, against any agent or
 human using the standard Git workflow:
 
 - **PII appearing in source files** committed via the normal flow.
-  Caught by `pii` at pre-commit and CI.
+Caught by `pii` at pre-commit and CI.
 - **Modifications to change-controlled paths** without explicit human
-  attestation. Caught by `path-guard` at pre-commit and CI.
+attestation. Caught by `path-guard` at pre-commit and CI.
 - **New test-skip annotations** without ticket references. Caught by
-  `test-skip` at pre-commit and CI.
+`test-skip` at pre-commit and CI.
 - **New runtime dependencies** without an accompanying ADR. Caught by
-  `dependency-guard` at pre-commit and CI.
+`dependency-guard` at pre-commit and CI.
 - **Force-pushes and branch deletions** on protected branches. Caught
-  by `history-guard` at pre-push.
+by `history-guard` at pre-push.
 - **Rebases of already-pushed commits.** Caught by `history-guard` at
-  pre-rebase.
+pre-rebase.
 - **Loss of forensic recovery data** after a destructive operation.
-  Mitigated by `reflog-witness`'s continuous capture.
+Mitigated by `reflog-witness`'s continuous capture.
 
 ### 22.2 What the package partially prevents
 
@@ -1305,18 +1313,24 @@ Failures where the package raises the cost of the bad action but does
 not eliminate it:
 
 - **Destruction of unstaged working-tree changes.** `working-tree-guard`
-  protects against this *only* when the agent's harness is configured to
-  call `agent-guardrails snapshot` before destructive operations. An
-  agent that bypasses the wrapper defeats it. Per-agent harness wiring
-  is documented separately; the more conservative the harness
-  configuration, the stronger the protection.
+protects against this *only* when the agent's harness is configured to
+call `agent-guardrails snapshot` before destructive operations. An
+agent that bypasses the wrapper defeats it. Per-agent harness wiring
+is documented separately; the more conservative the harness
+configuration, the stronger the protection.
 - **Bypass abuse.** `--no-verify` and the configured bypass trailer
-  exist for legitimate emergencies. Both are logged. The package surfaces
-  abuse patterns in the audit log; preventing abuse outright is a human
-  process concern, not a software concern.
+exist for legitimate emergencies. Both are logged. The package surfaces
+abuse patterns in the audit log; preventing abuse outright is a human
+process concern, not a software concern.
 - **Local override drift.** Repos can set `mode: off` or add broad
-  exemptions. Governance (§6 of the playbook) and the consumer contract
-  (§21 of this spec) raise the cost; they don't eliminate the option.
+exemptions. Governance (§6 of the playbook) and the consumer contract
+(§21 of this spec) raise the cost; they don't eliminate the option.
+- **Pre-action agent compliance with guardrails.** The generated
+`RIPSTOP.md` (from `ripstop generate-md`) places the active rules in the
+agent's session context, which raises the probability the agent gets
+things right first time. It does not guarantee compliance — agent-config
+files are advisory, and a determined or jailbroken agent can ignore them.
+The Layer 2 enforcement at commit time remains the binding control.
 
 ### 22.3 What the package does not prevent
 
@@ -1324,51 +1338,57 @@ Failures the package is not designed to catch and which require other
 controls:
 
 - **Direct filesystem destruction outside Git.** An agent with shell
-  access running `rm -rf src/` deletes files before any Git hook fires.
-  The mitigation is filesystem-level snapshotting (Time Machine, `btrfs`
-  snapshots, ZFS, or an `fswatch`-driven backup) running outside the
-  agent's reach. The package documents this; it does not implement it.
+access running `rm -rf src/` deletes files before any Git hook fires.
+The mitigation is filesystem-level snapshotting (Time Machine, `btrfs`
+snapshots, ZFS, or an `fswatch`-driven backup) running outside the
+agent's reach. The package documents this; it does not implement it.
 - **Server-side history rewrites.** A user with admin rights on the Git
-  server can rewrite history in ways no client-side hook can prevent.
-  Server-side branch protection (GitHub branch rules, GitLab protected
-  branches, Bitbucket equivalents) is the correct control. The package
-  pairs with these but does not replace them.
+server can rewrite history in ways no client-side hook can prevent.
+Server-side branch protection (GitHub branch rules, GitLab protected
+branches, Bitbucket equivalents) is the correct control. The package
+pairs with these but does not replace them.
 - **Malicious agent behaviour.** The package assumes agents are
-  well-intentioned and well-configured. An adversarial agent
-  deliberately working around the package's hooks (e.g., editing
-  `.husky/pre-commit` to a no-op, then committing) will succeed unless
-  caught by code review. The package logs every invocation and the
-  audit log will show the gap, but prevention requires human review.
+well-intentioned and well-configured. An adversarial agent
+deliberately working around the package's hooks (e.g., editing
+`.husky/pre-commit` to a no-op, then committing) will succeed unless
+caught by code review. The package logs every invocation and the
+audit log will show the gap, but prevention requires human review.
 - **Secrets already in Git history.** The package catches secrets at
-  the commit boundary. Secrets already committed before the package was
-  installed, or committed via `--no-verify`, remain in history. Use a
-  history scanner (gitleaks against the full log, BFG Repo-Cleaner for
-  removal) for retrospective coverage.
+the commit boundary. Secrets already committed before the package was
+installed, or committed via `--no-verify`, remain in history. Use a
+history scanner (gitleaks against the full log, BFG Repo-Cleaner for
+removal) for retrospective coverage.
 - **Network egress, API call patterns, runtime data exfiltration.**
-  These are runtime concerns. They belong in the agent harness's
-  permissions configuration (Layer 3 in the guardrails model), not in a
-  Git-time check.
+These are runtime concerns. They belong in the agent harness's
+permissions configuration (Layer 3 in the guardrails model), not in a
+Git-time check.
 
 ### 22.4 The layered model, restated
 
 The original three-layer model from the package's design intent:
 
 1. **Layer 1 — Agent configuration** (AGENTS.md, `.cursorrules`,
-   `.claude/settings.json`). Advisory. Stops willing agents.
+  `.claude/settings.json`). Advisory. Stops willing agents.
 2. **Layer 2 — Repo-local hooks and CI checks** (this package).
-   Enforced regardless of agent at Git boundaries. Catches the
+  Enforced regardless of agent at Git boundaries. Catches the
    standard-workflow failures in §22.1.
 3. **Layer 3 — Sandbox and permission boundaries** (agent harness
-   permissions, IAM, container sandboxing, filesystem snapshotting).
+  permissions, IAM, container sandboxing, filesystem snapshotting).
    The strongest layer; lives outside this package.
 
-This package is primarily Layer 2. The one exception is
-`working-tree-guard`, which spans Layer 2 and Layer 3: its pre-commit
-mode is pure Layer 2 (orphan detection at commit time), but its
-pre-action mode requires Layer 3 cooperation (the agent's harness must
-invoke `agent-guardrails snapshot` before destructive operations).
-Where Layer 3 cooperation is unavailable, `working-tree-guard` degrades
-to commit-time orphan warnings only.
+This package is primarily Layer 2. Two capabilities reach adjacent
+layers without changing that classification:
+
+- **`working-tree-guard`** spans Layer 2 and Layer 3: its pre-commit mode
+  is pure Layer 2 (orphan detection at commit time), but its pre-action
+  mode requires Layer 3 cooperation (the agent's harness must invoke
+  `agent-guardrails snapshot` before destructive operations). Where Layer
+  3 cooperation is unavailable, it degrades to commit-time orphan
+  warnings only.
+- **Generated `RIPSTOP.md`** populates Layer 1 (agent-readable config)
+  from the same resolved configuration that drives Layer 2 enforcement.
+  It reduces drift between what agents read and what hooks enforce; it
+  does not replace a well-maintained `AGENTS.md` or harness sandboxing.
 
 The package is most effective when deployed alongside Layers 1 and 3,
 not in place of them. Selling it as "comprehensive AI safety" is

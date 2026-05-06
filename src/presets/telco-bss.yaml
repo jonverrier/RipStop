@@ -1,0 +1,12 @@
+repo:
+  name: unknown
+  domain: bss
+  tier: 1
+
+extends: "@jonverrier/ripstop/presets/telco-generic"
+
+checks:
+  ripstop-md-fresh:
+    mode: enforce
+    triggers: [pre-commit, ci]
+    output_path: "RIPSTOP.md"

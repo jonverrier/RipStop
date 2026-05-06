@@ -6,12 +6,13 @@
 // Copyright (c) 2026 Jon Verrier
 
 import * as process from 'process';
-import { InvalidParameterError } from '@jonverrier/assistant-common';
+import { InvalidParameterError, InvalidStateError } from '@jonverrier/assistant-common';
 import { CHECK_MODES, CheckMode, IPushPayload, Trigger, TRIGGERS } from './checks/types';
 import { createDefaultRegistry } from './checks/registry';
 import { parsePrePushInput } from './checks/HistoryGuard';
 import { loadConfig } from './config/load';
 import { FileSelection, Git } from './git/Git';
+import { IGenerateMdCommand, parseGenerateMdArgs, runGenerateMd } from './generateMd';
 import { createReporter } from './reporters/Reporter';
 import { runChecks } from './Runner';
 
@@ -42,15 +43,23 @@ interface IVersionCommand {
   command: 'version';
 }
 
-type Command = ICheckCommand | IListCommand | IExplainCommand | IVersionCommand;
+type Command = ICheckCommand | IListCommand | IExplainCommand | IVersionCommand | IGenerateMdCommand;
 
 const HELP_TEXT = `Ripstop guardrails
 
 Usage:
   ripstop check [--staged | --all | --diff <ref>] --trigger <trigger> [options]
+  ripstop generate-md [options]
   ripstop list
   ripstop explain <check> [--resolved]
   ripstop version
+
+generate-md options:
+  --config <path>           Guardrails file (default: .guardrails.yaml)
+  --output <path>           Output file (default: RIPSTOP.md)
+  --format <fmt>            markdown | claude | cursor | codex | q (default: markdown)
+  --check-fresh             Exit 1 if RIPSTOP.md is missing or stale (no write)
+  --dry-run                 Print generated markdown to stdout; do not write
 
 Check options:
   --config <path>           Config file path (default: .guardrails.yaml)
@@ -90,6 +99,10 @@ export function parseArgs(argv: string[]): Command {
     return parseCheck(rest);
   }
 
+  if (command === 'generate-md') {
+    return parseGenerateMdArgs(rest);
+  }
+
   throw new InvalidParameterError(`Unknown command: ${command}`);
 }
 
@@ -98,7 +111,7 @@ async function main(): Promise<void> {
   const registry = createDefaultRegistry();
 
   if (command.command === 'version') {
-    process.stdout.write('0.1.0\n');
+    process.stdout.write('0.1.1\n');
     return;
   }
 
@@ -122,23 +135,30 @@ async function main(): Promise<void> {
     return;
   }
 
-  const config = await loadConfig(repoRoot, command.configPath);
-  const commitMessage = await git.readCommitMessage(command.commitMsgFile);
-  const pushPayload = command.trigger === 'pre-push'
-    ? await readPushPayload(command.remote ?? 'origin')
+  if (command.command === 'generate-md') {
+    const exitCode = await runGenerateMd(repoRoot, command);
+    process.exit(exitCode);
+  }
+
+  const checkCommand = command;
+  const config = await loadConfig(repoRoot, checkCommand.configPath);
+  const commitMessage = await git.readCommitMessage(checkCommand.commitMsgFile);
+  const pushPayload = checkCommand.trigger === 'pre-push'
+    ? await readPushPayload(checkCommand.remote ?? 'origin')
     : undefined;
 
   const result = await runChecks(config, registry, git, {
     repoRoot,
-    trigger: command.trigger,
-    selection: command.selection,
-    requestedChecks: command.requestedChecks,
-    modeOverride: command.modeOverride,
+    trigger: checkCommand.trigger,
+    selection: checkCommand.selection,
+    requestedChecks: checkCommand.requestedChecks,
+    modeOverride: checkCommand.modeOverride,
     commitMessage,
-    pushPayload
+    pushPayload,
+    guardrailsConfigPath: checkCommand.configPath
   });
 
-  const reporter = createReporter(command.format ?? config.reporting.format);
+  const reporter = createReporter(checkCommand.format ?? config.reporting.format);
   reporter.write(result);
   if (result.enforcedFailures > 0) {
     process.exit(1);
@@ -280,6 +300,9 @@ if (require.main === module) {
   main().catch((error: unknown) => {
     const message = error instanceof Error ? error.message : String(error);
     process.stderr.write(`Ripstop failed: ${message}\n`);
+    if (error instanceof InvalidParameterError || error instanceof InvalidStateError) {
+      process.exit(2);
+    }
     process.exit(3);
   });
 }

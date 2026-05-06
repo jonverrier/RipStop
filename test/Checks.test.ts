@@ -15,6 +15,10 @@ import { parsePrePushInput, historyGuardCheck } from '../src/checks/HistoryGuard
 import { AuditWriter } from '../src/logs/AuditWriter';
 import { WitnessWriter } from '../src/logs/WitnessWriter';
 import { ICheckContext, IFileEntry } from '../src/checks/types';
+import { ripstopMdFreshCheck } from '../src/checks/RipstopMdFresh';
+import { hashResolvedRipstopConfig } from '../src/config/configHash';
+import { RipstopConfigSchema, IRipstopConfig } from '../src/config/schema';
+import { generateRipstopMarkdown } from '../src/generators/markdown';
 
 describe('Checks', () => {
   it('path-guard flags protected files without approval trailer', async () => {
@@ -125,11 +129,52 @@ describe('Checks', () => {
       isDelete: false
     });
   });
+
+  it('ripstop-md-fresh passes when RIPSTOP.md hash matches resolved config', async () => {
+    const ctx = await createContext({
+      trigger: 'pre-commit',
+      mode: 'enforce',
+      config: { output_path: 'RIPSTOP.md' },
+      resolvedRipstopConfig: RipstopConfigSchema.parse({
+        repo: { name: 'x', domain: 'y', tier: 2 },
+        checks: { pii: { mode: 'off' } }
+      })
+    });
+    const resolved = ctx.resolvedRipstopConfig as IRipstopConfig;
+    const hash = hashResolvedRipstopConfig(resolved);
+    const md = generateRipstopMarkdown(resolved, {
+      packageVersion: '0.0.0-test',
+      generatedAtIso: '2026-01-01T00:00:00.000Z',
+      configHash: hash,
+      format: 'markdown'
+    });
+    await fs.writeFile(path.join(ctx.repoRoot, 'RIPSTOP.md'), md, 'utf8');
+
+    const findings = await ripstopMdFreshCheck.run(ctx);
+
+    expect(findings).toHaveLength(0);
+  });
+
+  it('ripstop-md-fresh fails when RIPSTOP.md is missing', async () => {
+    const ctx = await createContext({
+      trigger: 'pre-commit',
+      mode: 'enforce',
+      config: {},
+      resolvedRipstopConfig: RipstopConfigSchema.parse({
+        repo: { name: 'x', domain: 'y', tier: 2 }
+      })
+    });
+
+    const findings = await ripstopMdFreshCheck.run(ctx);
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].ruleId).toBe('ripstop-md-fresh.missing');
+  });
 });
 
 async function createContext(overrides: Partial<ICheckContext>): Promise<ICheckContext> {
   const repoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ripstop-check-'));
-  return {
+  const defaults: ICheckContext = {
     repoRoot,
     trigger: 'pre-commit',
     files: [],
@@ -137,8 +182,12 @@ async function createContext(overrides: Partial<ICheckContext>): Promise<ICheckC
     mode: 'warn',
     audit: new AuditWriter(path.join(repoRoot, '.git/ripstop/audit.jsonl'), '0.1.0', 'test'),
     witness: new WitnessWriter(path.join(repoRoot, '.git/ripstop/witness.jsonl'), '0.1.0', 'test'),
-    ...overrides
+    resolvedRipstopConfig: RipstopConfigSchema.parse({
+      repo: { name: 'test', domain: 'test', tier: 2 }
+    }),
+    guardrailsConfigPath: '.guardrails.yaml'
   };
+  return { ...defaults, ...overrides };
 }
 
 function fileEntry(filePath: string, content: string, options: { diff?: string } = {}): IFileEntry {

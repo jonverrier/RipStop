@@ -22,6 +22,8 @@ These checks are **implemented**, run via `ripstop check`, and are **fully opt-i
 | **`path-guard`** | `commit-msg`, `ci` | If protected globs changed, requires an approval trailer in the commit message. |
 | **`test-skip`** | `pre-commit`, `ci` | Warns/enforces on disallowed test-skip patterns and optional ticket requirement. |
 | **`history-guard`** | **`pre-push` only** | On protected branches (glob patterns), blocks **force push** and **remote branch delete** when configured. Uses stdin lines Git passes to `pre-push` (`--remote`, stdin parsing in CLI). |
+| **`ripstop-md-fresh`** | `pre-commit`, `ci` | Fails (per `mode`) when `RIPSTOP.md` is missing or its embedded **config hash** does not match the resolved `.guardrails.yaml` (including preset merge). |
+| **`ripstop generate-md`** | *(CLI)* | Writes `RIPSTOP.md` from resolved config; supports `--format`, `--dry-run`, `--check-fresh`, `--output`, `--config`. |
 
 **Also shipped:** YAML config load + preset merge (`extends: @jonverrier/ripstop/presets/...`), built-in presets (`internal-tooling`, `telco-generic`), CLI (`ripstop` / `agent-guardrails` alias), human + JSON reporting, and **structured audit logging** of findings to the path in `reporting.audit_log` (default `.git/ripstop/audit.jsonl`). A **witness** writer and default `witness_log` path exist in code and config, but **no check yet appends reflog-style witness records** — treat witness as **reserved for `reflog-witness`** until that ships.
 

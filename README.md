@@ -31,6 +31,12 @@ npx ripstop check --trigger pre-push
 npx ripstop check --trigger pre-rebase
 ```
 
+Generate an agent-readable summary of the **resolved** guardrails (commit `RIPSTOP.md` and reference it from `AGENTS.md` — see `docs/per-agent-config.md`):
+
+```bash
+npx ripstop generate-md
+```
+
 Use `commit-msg` for trailer-based policy. `pre-commit` runs before Git has a commit message, so checks such as approval trailers and bypass reasons validate in `commit-msg`.
 
 ## Minimal Config

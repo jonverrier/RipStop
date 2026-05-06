@@ -1,0 +1,6 @@
+repo:
+  name: fixture-minimal
+  domain: test
+  tier: 2
+
+extends: "@jonverrier/ripstop/presets/internal-tooling"
