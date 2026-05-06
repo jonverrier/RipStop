@@ -22,7 +22,7 @@
   ],
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jonverrier/Ripstop.git"
+    "url": "git+https://github.com/jonverrier/RipStop.git"
   },
   "publishConfig": {
     "registry": "https://npm.pkg.github.com"
