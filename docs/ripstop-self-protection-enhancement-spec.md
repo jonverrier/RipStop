@@ -1,11 +1,11 @@
 # Ripstop Enhancement Spec — Self-Protection of Guardrails Config
 
-**Status:** Implemented in Ripstop v0.2.x (path-guard presets, RIPSTOP
-section, Claude deny JSON, `reflog-witness`, `recover --config-history`);
-this document remains the design rationale.
+**Status:** Implemented in **npm 0.2.x** (path-guard presets, `RIPSTOP.md`
+self-protection section, Claude deny JSON, `reflog-witness`,
+`recover --config-history`); this document remains the design rationale.
 
-**Type:** Enhancement spec (older drafts used an internal “v1.2” milestone
-name; **npm semver is 0.2.x** — this work shipped in **0.2.0**).
+**Type:** Enhancement spec (shipped in **0.2.0+** — guardrails self-protection
+at commit time plus witness forensics for config drift).
 **Companion to:** `ripstop-spec.md`,
 `ripstop-consumer-playbook.md`, and
 `ripstop-markdown-enhancement-spec.md`

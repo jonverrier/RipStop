@@ -1,8 +1,8 @@
 # Ripstop Enhancement Spec — `RIPSTOP.md` Generation
 
 **Status:** Implemented in package (CLI + `ripstop-md-fresh` + docs); keep this spec as design rationale.
-**Type:** Enhancement spec (shipped in **npm 0.1.x+**; older drafts used
-internal “v1.1” milestone names — **semver on the package is 0.1 → 0.2**).
+**Type:** Enhancement spec (shipped in **npm 0.1.x+** — `generate-md`,
+`ripstop-md-fresh`, per-agent formats, and related documentation).
 **Companion to:** `ripstop-spec.md`,
 `ripstop-consumer-playbook.md`
 **Audience:** The engineers extending Ripstop to populate agent-config
