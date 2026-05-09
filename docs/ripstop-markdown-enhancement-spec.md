@@ -1,8 +1,8 @@
 # Ripstop Enhancement Spec — `RIPSTOP.md` Generation
 
 **Status:** Implemented in package (CLI + `ripstop-md-fresh` + docs); keep this spec as design rationale.
-**Type:** Enhancement spec, scoped for inclusion in Ripstop v1.1 or as a
-v1.0 stretch
+**Type:** Enhancement spec (shipped in **npm 0.1.x+**; older drafts used
+internal “v1.1” milestone names — **semver on the package is 0.1 → 0.2**).
 **Companion to:** `ripstop-spec.md`,
 `ripstop-consumer-playbook.md`
 **Audience:** The engineers extending Ripstop to populate agent-config
@@ -269,7 +269,8 @@ freshness)
 
 ## 8. Freshness check
 
-A new check, `ripstop-md-fresh`, is added to the v1.1 check set.
+A new check, `ripstop-md-fresh`, is added to the **default check set**
+(shipped from **0.1.x** onward).
 
 ### 8.1 Mechanism
 
@@ -499,9 +500,8 @@ end-to-end agent test.
 Three to four days, scoped tightly. Substantially less if the
 generator can reuse existing config-resolution code, which it should.
 
-This sits comfortably as a v1.1 deliverable after the v1.0 core
-ships, or as a v1.0 stretch if the original four-day window has
-slack.
+Historically this was scoped as a follow-on after the first core checks;
+on npm it landed as **0.1.x** alongside `generate-md`.
 
 ---
 
@@ -515,7 +515,7 @@ slack.
 3. **Should there be a way for `RIPSTOP.md` to include consumer-
   authored prose alongside the generated content?** A
    "consumer-supplied preamble" file that gets prepended? Useful but
-   adds complexity. Defer to v1.2 unless adoption demand is high.
+   adds complexity. Defer to a **later minor** unless adoption demand is high.
 4. **Should plugin-supplied checks contribute to `RIPSTOP.md`?**
   Yes, by the same `Check` interface — each check declares its own
    summary text. This is implicit in the design but worth being

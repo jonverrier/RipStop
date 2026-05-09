@@ -135,19 +135,19 @@ native Git binding. PRs introducing native dependencies are rejected.
 
 ### Code signing
 
-For the v1.0 MVP, binaries ship **unsigned**. Users will see SmartScreen
+For **early 0.x** binary distribution, binaries ship **unsigned**. Users will see SmartScreen
 warnings on Windows and Gatekeeper quarantine prompts on macOS when
 binaries are downloaded via a browser. The install documentation calls
 this out explicitly with the workaround steps.
 
-For v1.1, binaries are signed:
+In a **later release**, binaries are targeted to be signed:
 
 - **Windows**: signed under the firm's or the telco's existing code-signing
 certificate (Authenticode).
 - **macOS**: signed with an Apple Developer ID and notarised via Apple's
 notary service, with the notarisation ticket stapled to the binary.
 
-Code signing is on the v1.1 backlog rather than v1.0 because the
+Code signing is **deferred past the first published binaries** because the
 certificate procurement and pipeline integration is half a day of work
 that doesn't materially change the package's behaviour, only its
 adoption friction in browser-download contexts. Internal artefact-store
@@ -595,7 +595,7 @@ export default {
 ```
 
 **Plugin packages** are npm packages (or binary plugins via a future
-extension point — out of scope for v1.0) that export one or more
+extension point — out of scope for the **initial 0.x** surface) that export one or more
 checks. Listed in repo config under `plugins:`, loaded after presets
 and before local checks. Plugins enable shared check libraries across
 repos without each repo copying the implementation.
@@ -910,7 +910,7 @@ working-tree-guard:
 Presets are YAML files shipped inside the package, referenced via
 `extends:` in repo configs. They are versioned with the package.
 
-**Presets in v1.0:**
+**Built-in presets (shipped in package; evolve with semver):**
 
 - `telco-generic` — sensible defaults, light PII, no domain-specific patterns
 - `telco-bss` — extends `telco-generic` with stricter defaults (e.g. `ripstop-md-fresh`); add billing-specific PII patterns in repo overrides as needed
@@ -962,7 +962,7 @@ the keyboard.
 - `**json`** — one JSON object on stdout: `{ findings: [...], summary: {...} }`. Designed for CI integration and downstream
 tooling.
 - `**sarif**` — SARIF 2.1.0 output, suitable for GitHub Code Scanning.
-Stretch for v1.0; nice-to-have for security team uptake.
+Stretch for **early releases**; nice-to-have for security tooling uptake.
 
 ### 12.2 Log files
 
@@ -1127,7 +1127,7 @@ Three checks fully enforced beat ten checks half-adopted.
 
 ---
 
-## 18. Out of scope (for v1.0)
+## 18. Out of scope (initial 0.x product scope)
 
 - IDE integration. (Linters already handle in-editor feedback; we're at the
 commit boundary deliberately.)
@@ -1140,7 +1140,7 @@ if you need it.
 
 ---
 
-## 19. Acceptance criteria for v1.0
+## 19. Acceptance criteria (initial 0.x product scope)
 
 The package ships when:
 
@@ -1160,7 +1160,7 @@ The package ships when:
   before release.
 8. `telco-generic` and `telco-bss` presets are complete and exercised in
   tests.
-9. One real telco repo has it installed in `warn` mode and is producing
+9. One real pilot repo has it installed in `warn` mode and is producing
   audit and witness logs.
 10. `docs/per-agent-config.md` covers Claude Code, Cursor, Codex, and
   Amazon Q, including the working-tree-guard wiring for each.
@@ -1173,10 +1173,10 @@ The package ships when:
   accepted by the engaging client's security stakeholder before
     release. This avoids the package being mis-sold internally.
 
-`working-tree-guard` may ship in v1.0 or v1.1 depending on time
-remaining; if cut from v1.0, it ships behind a `preview: true` flag in
-the next minor. `history-guard` and `reflog-witness` are required for
-v1.0.
+`working-tree-guard` may ship in **0.3+** depending on time
+remaining; if cut from the initial milestone, it ships behind a `preview: true` flag in
+the next minor. `history-guard` and `reflog-witness` are required for the
+**first public 0.x** cut described in §19.
 
 ---
 
@@ -1192,9 +1192,9 @@ alongside the audit log infrastructure since they share plumbing.
 integration, presets, reporters (human + JSON).
 - **Day 3:** bun-compiled binaries, npm publish dry-run, integration
 tests including the no-Node e2e, per-agent docs.
-- **Day 4:** install in pilot telco repo, tune patterns, gather first
+- **Day 4:** install in a **pilot repo**, tune patterns, gather first
 audit and witness logs, polish docs, demo. Working-tree-guard
-prototype if time remains; otherwise scoped to v1.1.
+prototype if time remains; otherwise scoped to a **later minor**.
 
 SARIF reporter, container image, `--explain --resolved`, and
 working-tree-guard are stretch. Cut them before cutting test coverage,

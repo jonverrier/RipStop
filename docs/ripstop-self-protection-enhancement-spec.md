@@ -4,8 +4,8 @@
 section, Claude deny JSON, `reflog-witness`, `recover --config-history`);
 this document remains the design rationale.
 
-**Type:** Enhancement spec (original scope Ripstop v1.2 roadmap naming;
-shipped in npm package **0.2.0**).
+**Type:** Enhancement spec (older drafts used an internal “v1.2” milestone
+name; **npm semver is 0.2.x** — this work shipped in **0.2.0**).
 **Companion to:** `ripstop-spec.md`,
 `ripstop-consumer-playbook.md`, and
 `ripstop-markdown-enhancement-spec.md`
@@ -20,8 +20,9 @@ Ripstop's guardrails are only as strong as the configuration that
 defines them. An agent that wants to make a check pass can
 short-circuit the entire system by editing `.guardrails.yaml` —
 disabling a rule, broadening an exemption, switching mode to `off` —
-in the same commit as the work that triggered the check. Nothing in
-the v1.0 or v1.1 design prevents this directly.
+in the same commit as the work that triggered the check. **0.0.x–0.1.x**
+did not yet combine path-guard on config files, extended witness capture,
+and generated self-protection copy the way **0.2.x** does.
 
 This enhancement closes that gap with layered self-protection:
 
@@ -29,14 +30,14 @@ This enhancement closes that gap with layered self-protection:
   `RIPSTOP.md`, instructing each agent (and where supported,
    harness-enforcing) that guardrails configuration files are not
    to be modified.
-2. `**path-guard` defaults strengthened** — every preset's
+2. **`path-guard` defaults strengthened** — every preset's
   `protected_paths` list gains `.guardrails.yaml`, `.guardrails/`,
    and `RIPSTOP.md`. Modifications require an explicit
    `CHANGE-APPROVED: <ticket>` trailer.
 3. **Witness capture extended** — `reflog-witness` snapshots the
   contents of `.guardrails.yaml` at every invocation, so even if
-   the file is deleted or rewritten, the platform team's quarterly
-   review can detect and reconstruct it.
+   the file is deleted or rewritten, **witness review** (manual or
+   scripted) can detect and reconstruct it.
 
 The honest framing: this makes casual misconfiguration much harder
 and deliberate misconfiguration visible. It does not make Ripstop
@@ -54,23 +55,23 @@ Rather than fixing the underlying code, the agent edits
 `.guardrails.yaml` to silence the check — usually by adding an
 exemption, occasionally by flipping mode to `off`. The commit
 contains both the original change and the config edit. CI passes,
-guardrails are now weaker, nobody notices until the quarterly
-review.
+guardrails are now weaker, nobody notices until the next **config /
+witness review** you schedule.
 
 This is the dominant failure mode. It is not malicious; it is the
-agent following the path of least resistance. v1.0/1.1 catches it
+agent following the path of least resistance. **0.1.x** catches it
 only retrospectively (in audit log review). This enhancement catches
 it at commit time.
 
 **Quiet erosion.** A team adopts more aggressive local exemptions
-than the platform team would approve, often introduced commit-by-commit
+than **governance owners** would approve, often introduced commit-by-commit
 by agents reacting to friction. Each individual change looks
 reasonable; the cumulative drift is large. The repo's effective
 guardrails diverge silently from the preset baseline.
 
 This enhancement does not directly prevent erosion, but the
-`CHANGE-APPROVED` trailer requirement creates a paper trail and the
-quarterly drift review catches accumulation.
+`CHANGE-APPROVED` trailer requirement creates a paper trail and a
+**periodic drift review** (if your org runs one) catches accumulation.
 
 **Deliberate sabotage.** A jailbroken or adversarial agent (or a
 human acting in bad faith) deletes or rewrites `.guardrails.yaml`,
@@ -200,7 +201,7 @@ path-guard:
   protected_paths:
     # Existing per-preset entries (infra/**, migrations/**, etc.)
     # ...
-    # New universal entries — added in v1.2
+    # New universal entries — added in 0.2.x presets
     - ".guardrails.yaml"
     - ".guardrails/**"
     - "RIPSTOP.md"
@@ -220,7 +221,7 @@ made via direct shell. Agent-config bypass is irrelevant here.
 contents (or its hash, plus the actual content if it has changed
 since the last capture) on every invocation. The witness log already
 records: timestamp, HEAD SHA, branch, reflog entries, stash
-inventory. v1.2 adds:
+inventory. **0.2.x** adds:
 
 ```jsonl
 {
@@ -349,7 +350,7 @@ voice that Cursor's parser handles well
 
 The `.cursorrules` integration is unchanged (still
 `@import RIPSTOP.md` or equivalent). Cursor has no mechanism for
-machine-enforced file denials at the time of v1.2's spec; the
+machine-enforced file denials in **0.2.x**; the
 markdown is the only available channel.
 
 ### 7.3 Codex / OpenAI tools
@@ -375,7 +376,7 @@ trailer** → `path-guard` fires, commit blocked. Standard failure
 path. Self-protection message appears in the error.
 - **Agent edits `.guardrails.yaml` with the trailer but the
 rationale is bogus** → commit succeeds; bypass is logged in
-audit log; surfaced in quarterly review. This is the gap that
+audit log; surfaced in **your review process**. This is the gap that
 process must fill.
 - **Agent attempts to delete `.guardrails/` or rewrite witness
 log** → `path-guard` blocks the commit. If the deletion happens
@@ -384,7 +385,7 @@ main spec §22.3) is the available control; Ripstop itself does
 not prevent shell-level destruction.
 - **Agent edits `.claude/settings.json` to remove the deny
 rules** → `.claude/settings.json` is added to the protected
-paths list in v1.2 presets specifically to defend against this.
+paths list in **0.2.x** presets specifically to defend against this.
 Same trailer requirement.
 - **Generated deny rules conflict with existing
 `.claude/settings.json` content** → merge is shallow and
@@ -422,8 +423,8 @@ reaches into Layer 1 with deny rules where supported
 editing `.guardrails.yaml` is itself a guardrail violation, not
 a legitimate bypass
 - **§6 override governance** — add explicit text on
-guardrails-config edits requiring platform-team sign-off in
-tier 1 and tier 2 repos
+guardrails-config edits requiring **designated reviewer sign-off** in
+tier 1 and tier 2 repos (when your org uses tiers)
 - **§10 incident recovery** — new sub-section on
 `ripstop recover --config-history` for investigating
 configuration drift
@@ -472,7 +473,7 @@ The enhancement ships when:
 
 ## 11. Effort estimate
 
-For one engineer with v1.0 and v1.1 already shipped:
+For one engineer with **`generate-md` / `ripstop-md-fresh` (0.1.x) already shipped**:
 
 - **Day 1:** preset config updates, `path-guard` self-protection
 message, integration tests for the protected-files-block-commit
@@ -509,7 +510,7 @@ with shell access can still:
 - Run `git commit --no-verify` to skip pre-commit hooks
 - Use `rm` to delete files outside Git's view
 - Edit `.husky/pre-commit` to a no-op (though `path-guard` would
-catch this too, in v1.2)
+catch this too, when those paths are protected in **0.2.x**)
 - Modify the witness log directly (though it's append-only by
 convention, the file system permits writes)
 
@@ -521,7 +522,7 @@ called out in the main spec's §22.3.
 The selling line: *"Ripstop makes casual misconfiguration much
 harder, and makes deliberate misconfiguration visible. It does not
 make the guardrails impossible to bypass — that requires
-controls that live outside the package, in your platform team's
+controls that live outside the package, in **your org’s**
 broader stack."*
 
 That's a strong, honest, defensible claim. Anything stronger is
@@ -539,8 +540,8 @@ overpromising and will erode trust on first incident.
    no, but worth tracking in the audit log if shim contents
    change.
 2. **Should the self-protection message be localised?** Probably
-  not for v1.2 — the message is for agents and platform teams,
-   both of which operate in English in the target consumer
+  not for **0.2.0** alone — the message is for agents and **engineering
+   leads**, both of which operate in English in the first **public OSS**
    environment. Revisit if Ripstop sees adoption outside that
    context.
 3. **Should `reflog-witness` capture full content always, or only
@@ -549,9 +550,9 @@ overpromising and will erode trust on first incident.
    compacted. Argument for deltas: storage cost over time. Lean
    deltas, with a configurable threshold (default 1MB) above
    which only hashes are stored.
-4. **Should there be a "self-protection bypass" — a way for the
-  platform team to legitimately disable self-protection for
-   debugging?** Probably yes, via a config flag that's itself
+4. **Should there be a "self-protection bypass"** — a way for **operators**
+  to legitimately disable self-protection for **debugging**? Probably yes,
+  via a config flag that's itself
    change-controlled. `self_protection: off` in
    `.guardrails.yaml`, where setting it requires the
    `CHANGE-APPROVED` trailer (recursively guarded). Worth
