@@ -1,20 +1,24 @@
-# `ripstop` / `agent-guardrails` — Consumer Playbook
+# Ripstop — consumer playbook
 
-**Status:** Draft v0.1
-**Audience:** Repo owners and engineering teams adopting the package.
-**Companion to:** `agent-guardrails-spec.md` (read that for what the package
-*is*; this document is for how to *use* it well.)
+**Status:** Draft v0.1  
+**Audience:** Repo owners and engineering teams adopting the package.  
+**Companion to:** `ripstop-spec.md` (read that for what the package *is*; this document is for how to *use* it well.)
+
+**Distribution:** Ripstop ships as **open source on GitHub**. Maintenance, bug reports, and feature discussion are expected to flow through **GitHub issues** (and **release notes** on tagged versions). Traffic from a **public launch** (for example **Show HN**) lands in the same place — there is no separate “platform team” in the default model; you adopt and run the tool in your repo.
+
+**Examples, not requirements:** Preset names such as `telco-bss`, `repo.domain` values (`bss`, `network`, …), and **tier** language describe **one possible governance story** and **bundled example presets**. Many adopters will use `internal-tooling` only, fork presets, or ignore tiers. When this playbook shows telco-flavoured mappings, treat them as **illustrations** of how a large org *might* align repos to presets — not as something you must match.
 
 ---
 
 ## 1. Who this is for
 
-You own a repository in which AI coding agents (Claude Code, Cursor, Codex,
-Amazon Q) make changes. The platform team has installed `ripstop`
-in your repo, or asked you to install it. This document tells you how to
-live with it day-to-day.
+You own or contribute to a repository where AI coding agents (Claude Code,
+Cursor, Codex, Amazon Q) — or humans — make changes, and you want **the
+same guardrails regardless of who produced the diff**. You install and
+configure `ripstop` in your repo (from npm or a future binary). This
+document is how to run it without turning hooks into a daily crisis.
 
-If you're building or maintaining the package itself, read the spec instead.
+If you are contributing to Ripstop itself, read `ripstop-spec.md` instead.
 
 ---
 
@@ -22,10 +26,11 @@ If you're building or maintaining the package itself, read the spec instead.
 
 The package gives you:
 
-- A working set of guardrails on day one, tuned by the central preset
+- A working set of guardrails on day one, usually via a **shipped preset**
+you reference with `extends:` (or your own YAML)
 - Findings that are specific, actionable, and machine-readable for agents
-- An audit trail your security team will accept as evidence
-- A clear escape hatch for the genuinely-broken-cases
+- An audit trail you can show **reviewers, auditors, or incident postmortems**
+- A clear escape hatch for genuinely broken cases
 
 In exchange, your team commits to:
 
@@ -35,12 +40,13 @@ warnings, your CI breaks on upgrade.
 - **Justify and log every `mode: off` override.** Disabling a check
 silently is the failure mode this whole system is designed to prevent.
 - **Treat bypasses as exceptional, not routine.** Repeated bypasses on the
-same check are a signal to fix the underlying problem or request a config
-change centrally.
+same check are a signal to fix the underlying problem, adjust config, or
+open an **upstream issue** if the rule is wrong for everyone.
 - **Pin the package version and upgrade deliberately.** Auto-upgrade on
 major versions will break your CI. That's not a bug.
-- **Report false positives back centrally** rather than silently exempting
-them locally. One team's false positive is everyone's false positive.
+- **Report false positives upstream** (Ripstop **GitHub issues**) rather than
+silently exempting them only in your fork — or document why your exemption
+is permanently local.
 
 These obligations are formalised in §21 of the spec. The rest of this
 document is how to meet them without it being a chore.
@@ -59,13 +65,12 @@ npm install --save-dev husky
 npx husky init
 ```
 
-If your repo is Java/Python/Go (no Node toolchain):
+If your repo is Java/Python/Go (no Node toolchain), use whatever install path
+you standardise on (for example a **standalone Ripstop binary** when that
+distribution exists, or a small wrapper that shells out to a pinned build).
+The contract is: `**ripstop` on `PATH`**, same triggers as below.
 
 ```bash
-# Pull the binary from the internal artefact store
-curl -fsSL https://artifacts.internal/guardrails/install.sh | sh
-
-# Confirms the binary is on PATH
 ripstop version
 ```
 
@@ -121,7 +126,7 @@ jobs:
 ```
 
 For non-Node repos, replace `npx ripstop` with the binary path
-(`ripstop`, or the compatibility alias `agent-guardrails`) and put the files in `.git/hooks/` instead of
+(`ripstop`) and put the files in `.git/hooks/` instead of
 `.husky/`.
 
 That's the entire wiring. You should never need to edit these files
@@ -143,6 +148,12 @@ Add a single reference from your `AGENTS.md` (or equivalent) to
 `ripstop-md-fresh` check (when enabled) fails if the file is missing or
 stale relative to the resolved configuration — regenerate with the same
 command after any config change.
+
+**Self-protection (v0.2+):** preset `path-guard` entries include
+`.guardrails.yaml`, `.guardrails/`, `RIPSTOP.md`, and Claude settings
+fragments — edits require the same `CHANGE-APPROVED` trailer as other
+protected paths. Do not “fix” a failing check by weakening config in the
+same commit; that is a guardrail violation. Use `ripstop recover --config-history` to inspect past captured configs in the witness log.
 
 ### 3.3 Pick a preset
 
@@ -169,23 +180,23 @@ checks:
   working-tree-guard:  { mode: warn }
 ```
 
-Preset choice:
+**Example preset choice** (only if you use the bundled telco-style presets —
+this is **illustrative**, not a requirement to pick a “domain”):
 
-- BSS / billing / CRM / customer-data → `telco-bss`
-- Network config / OSS → `telco-network`
-- Internal tools, no customer data → `internal-tooling`
-- Unsure → `telco-generic` (you can switch later)
+- Example — BSS / billing / CRM / customer-heavy services → `telco-bss`
+- Example — network / OSS-style config repos → `telco-network`
+- Example — internal tools, lighter data → `internal-tooling`
+- Example — unsure → `telco-generic` (you can switch later)
 
-**Tier** drives governance behaviour throughout this playbook:
+**Tier** (`repo.tier`) is an **optional** knob used *in this playbook* to
+illustrate stricter vs looser **governance** (who can flip `mode: off`, how
+hard bypasses are scrutinised). If you are a single repo or a small team,
+you can set a tier for documentation only, or omit the concept and apply
+the same discipline everywhere.
 
-- **Tier 1** — production, customer-facing or revenue-bearing. Strictest
-governance.
-- **Tier 2** — production, internal-facing or supporting. Standard
-governance.
-- **Tier 3** — non-production, sandboxes, experiments. Light governance.
-
-If unsure, ask the platform team rather than guessing. Misclassification
-is itself flagged in quarterly review.
+If unsure which preset fits, start with `**internal-tooling`** or
+`**telco-generic**`, run a dry run (§3.4), and refine. For preset design
+questions, open a **GitHub issue** on the Ripstop repository.
 
 ### 3.4 First dry run
 
@@ -211,9 +222,9 @@ Sort findings into four buckets:
        - path: "test/fixtures/**"
          reason: "Synthetic test data, reviewed by [name] on [date]"
   ```
-3. **False positives** (regex too aggressive on legitimate code) → **report
-  centrally first** (see §8). Add a local exemption only if you need to
-   ship before the central fix lands.
+3. **False positives** (regex too aggressive on legitimate code) → **open an
+  upstream GitHub issue first** (see §8). Add a local exemption only if you
+   need to ship before a fix or preset change lands.
 4. **Findings on third-party code you don't control** (vendored libs,
   generated code) → path exemption with reason.
 
@@ -260,7 +271,7 @@ Five things to read:
 - **Location** (`src/handlers/customer.ts:42`) — where to look
 - **Message** — what's wrong
 - **Rule ID** (`pii.msisdn`) — stable identifier; use this when reporting
-false positives or requesting central changes
+false positives or requesting **upstream** preset / check changes
 
 ### 4.2 Triaging false positives
 
@@ -269,31 +280,34 @@ not actually a violation. Do not just exempt it locally and move on. The
 correct workflow:
 
 1. Confirm it's a false positive by reading the rule and the matched line.
-2. Open an issue against the central library repo with: rule ID, the
+2. Open an issue on **the Ripstop GitHub repository** with: rule ID, the
   matching string (redacted if needed), the surrounding code context, and
    why it's a false positive.
-3. The platform team responds within the SLA (see §4.5).
+3. Wait for maintainers to triage — see §4.5 for expectations (best-effort,
+  not a vendor SLA).
 4. **If you need to ship before the fix lands**, add a local exemption
-  *referencing the issue*:
-5. When the central fix lands, remove the local exemption.
+  *referencing the issue URL*:
+5. When the upstream fix or guidance lands in a release you adopt, remove the
+  local exemption if it is no longer needed.
 
 The "reason" field is not bureaucratic theatre. It is what your future self
 or your security auditor reads when asking "why is this disabled?"
 
-### 4.3 Local pattern vs. central pattern
+### 4.3 Local pattern vs. shared (upstream) pattern
 
 Some patterns are genuinely repo-specific. Some are not. Use this rule:
 
-- **If the pattern would be useful in another team's repo → request it
-centrally.** Internal account ID formats, organisation-wide PII patterns,
-shared infrastructure markers all belong in a preset, not in your config.
+- **If the pattern would help other Ripstop users too → open an upstream
+GitHub issue** (preset change or new built-in pattern). Organisation-wide
+PII formats, widely shared infrastructure markers, etc., belong in defaults
+or docs — not copy-pasted across twenty private repos.
 - **If the pattern is genuinely local → add it via `extra_patterns`.**
-References to a deprecated internal library only your repo uses, a
-legacy ID format only your domain has, etc.
+References to a deprecated library only your repo uses, a legacy ID format
+only your codebase has, etc.
 
-When in doubt, request it centrally and let the platform team decline.
-Adding to a preset is cheap; removing a duplicated pattern from twenty
-repos is expensive.
+When in doubt, **open an issue** with the proposal; maintainers may decline
+or defer. Duplicating the same `extra_patterns` block everywhere is a smell
+that something should move upstream.
 
 ### 4.4 Requesting an exemption
 
@@ -304,29 +318,34 @@ There are two kinds:
 - Path-based or line-based
 - Always requires `reason`
 - Visible in the audit log
-- No central approval required for `warn` mode
-- For `enforce` mode in `tier: 1` repos: requires platform-team sign-off
-via PR review (see §6)
+- No upstream approval required for `warn` mode in your repo
+- For `enforce` mode in `**tier: 1`** repos *in organisations that use tiers*:
+require **designated reviewer sign-off** via PR (see §6) — adjust who that is
+to your team size
 
-**Central exemption** (a change to a preset):
+**Upstream / shared exemption** (a change to a preset shipped with Ripstop,
+or default patterns):
 
-- Used when the same exemption is right for many repos
-- Requested via the central library's issue tracker
-- Reviewed by the platform team
+- Used when the same exemption is right for **many** consumers of the package
+- Requested via **GitHub issues** (or a PR if you already have a patch)
+- Reviewed by **Ripstop maintainers** like any other contribution
 
-### 4.5 SLAs from the platform team
+### 4.5 What to expect from upstream (no vendor SLA)
 
-- **False positive in default pattern set:** acknowledged within 1 working
-day, fix or workaround within 5 working days.
-- **New pattern request:** acknowledged within 3 working days, decided
-within 10 working days.
-- **New check request:** acknowledged within 5 working days, decision
-(yes / no / later) within one quarterly planning cycle.
-- **Security-impacting issue** (a finding type the package missed that it
-should have caught): treat as P2, acknowledged same day, fix targeted
-within 5 working days.
+Ripstop is **open source**. Issues are triaged **best-effort** — there is
+no contracted response time. For **security-sensitive** defects, use the
+repository's **private security advisory** mechanism if GitHub offers it.
 
-If the SLA isn't being met, escalate via §10.
+Practical etiquette that speeds things up:
+
+- One issue per **rule ID** or bug, with a **minimal repro** where possible.
+- Say whether you can **contribute a PR** (even a failing test helps).
+- If you must **ship before a fix exists**, use a **local exemption** with
+the issue URL in `reason` (§4.2) instead of weakening defaults silently.
+
+If you need guaranteed turnaround, budget either **maintainer time** (sponsor
+/ contract separately) or **your own fork** of presets — the OSS default is
+volunteer-driven.
 
 ---
 
@@ -365,7 +384,7 @@ Branch is feature/billing-refresh, not yet merged to main.
 
 Mechanically these are the same — both produce identical audit log
 entries — but the surface form differs. New rule-specific aliases
-require central approval; ad-hoc proliferation defeats the point.
+require upstream / org approval; ad-hoc proliferation defeats the point.
 
 ### 5.2 What gets logged
 
@@ -385,8 +404,10 @@ working tree:
 }
 ```
 
-Your repo owner reviews this log weekly. The platform team aggregates
-across repos monthly and surfaces patterns.
+Your **repo owners** should review this log on a cadence that matches your
+risk (weekly is a common starting point). If you run **many repos**, someone
+may aggregate bypass patterns across them — that is an **organisational**
+practice, not something Ripstop ships.
 
 ### 5.3 What's a "pattern" worth surfacing
 
@@ -400,8 +421,8 @@ are, it's a bug)
 ### 5.4 Escalation if bypass is denied or contested
 
 If you believe a bypass was warranted but it's been challenged in review,
-the path is: repo owner → platform team office hours → eng leadership.
-Don't argue in commit messages.
+resolve it through **your team's normal engineering escalation** (tech
+lead, on-call, etc.). Don't argue in commit messages.
 
 ---
 
@@ -417,27 +438,33 @@ means a check is silently not running.
 `reason`
 - Add `extra_patterns` (additive, never disables anything)
 
-### 6.2 What requires platform-team sign-off
+### 6.2 What should require explicit reviewer sign-off
 
-- `mode: off` on any check, in any repo
-- Path exemptions in `tier: 1` repos
+Use this as a **template**; adapt owners to your org size:
+
+- `mode: off` on any check (someone should acknowledge the risk in PR)
+- Path exemptions in `**tier: 1`** repos *if you use the tier model*
 - Removing `protected_paths` entries
 - Disabling the audit log
 
-Sign-off is a PR review from the `@platform-guardrails` group. The PR
-description must include: rationale, scope (this repo only? this domain?
-estate-wide?), expiry date or condition for re-enabling.
+Sign-off is **whoever your repo trusts for production-risk changes** — for
+many teams that is **two maintainers on the PR**. The PR description should
+include: rationale, scope (this repo only? whole org preset?), and ideally an
+**expiry** or condition for re-enabling stricter mode.
 
-### 6.3 What the central team monitors
+### 6.3 What healthy programmes review periodically
 
-Quarterly, the platform team reviews:
+Whether you do this monthly, quarterly, or ad hoc is up to you. Useful
+questions:
 
-- All `mode: off` overrides across the estate
-- All exemptions older than 6 months (are they still needed?)
-- Repos whose `.guardrails.yaml` significantly diverges from their preset
+- All `**mode: off*`* overrides — are they still justified?
+- Exemptions older than **six months** — still needed?
+- Repos whose `.guardrails.yaml` **diverges sharply** from the preset they
+claim to extend — accidental fork, or intentional?
 
-This isn't surveillance theatre. It's how the package stays calibrated. A
-preset that everyone overrides is a preset that's wrong.
+This isn't surveillance theatre. It's how defaults stay honest. A preset
+that **everyone** overrides upstream is a preset that should change in
+**GitHub issues / PRs**.
 
 ---
 
@@ -501,36 +528,29 @@ how clean the repo was at the previous version.
 
 ---
 
-## 8. Feedback into the central library
+## 8. Feedback upstream (Ripstop on GitHub)
 
-Your team is the closest source of signal on whether the package works in
-practice. Use the channels:
+Your runs are the best signal on whether the package works in the wild.
+**Default channel:** **GitHub issues** on the Ripstop repository — for false
+positives, missed cases, pattern requests, bug reports, documentation gaps.
 
-### 8.1 GitHub issues on the central repo
+Include where possible: **rule ID**, minimal repro or fixture, expected vs
+actual behaviour, Ripstop **version** and **Node** version.
 
-For: false positives, missed cases, pattern requests, bug reports,
-documentation gaps.
+### 8.1 Optional — how larger organisations often supplement issues
 
-Issue template includes: rule ID, repo context, expected vs. actual
-behaviour, minimum reproducing fixture if possible.
+The following are **examples** of what a company might add **on top of**
+GitHub. Ripstop does not require them:
 
-### 8.2 Office hours
+- **Office hours** — a maintainer or internal champion hosts a short weekly
+slot for design questions.
+- **An internal chat channel** (`#guardrails`, etc.) — quick “is this my
+config?” questions between engineers.
+- **A periodic internal report** — aggregating bypass and finding trends
+across *their* repos (not shipped by Ripstop).
 
-The platform team runs a 30-minute office hours every other Wednesday.
-Drop in for: anything you can't articulate in an issue, design discussions
-on new checks, advice on a tricky exemption, complaints.
-
-### 8.3 The `#guardrails` Slack / Teams channel
-
-For: quick questions, "is this a bug or my mistake," sharing patterns that
-worked. Not for incident response.
-
-### 8.4 Quarterly retrospective
-
-Every quarter the platform team publishes: top findings across the estate,
-which checks fired most often, bypass rate trends, false positive rate,
-what's coming in the next release. This is your chance to push back on
-direction. Read it.
+If you are a solo maintainer or a public OSS project, **issues + releases**
+are enough.
 
 ---
 
@@ -538,13 +558,13 @@ direction. Read it.
 
 **"My PR is blocked by a finding I think is wrong, and I need to ship today."**
 File the false positive issue (§4.2 step 2), add a local exemption with the
-issue link in the reason, ship. Remove the exemption when the central fix
-lands. Do not bypass for this — bypass is for incidents, not disagreements.
+issue link in the reason, ship. Remove the exemption when the **upstream**
+fix lands. Do not bypass for this — bypass is for incidents, not disagreements.
 
 **"The preset has a pattern I genuinely don't need in my repo."**
 You can override a specific pattern by name in your config. If you're the
 only team that doesn't need it, that's fine. If you're the third team to
-override it, raise it centrally — the preset is probably wrong.
+override it, **open an upstream issue** — the preset is probably wrong.
 
 **"A new check landed in warn mode and is firing 200 times in my repo."**
 That's the system working. Triage in priority order: real violations
@@ -565,8 +585,8 @@ By design. Rotate it monthly via the script in `docs/audit-rotation.md`
 
 **"We want to add a check that's specific to our team."**
 You can add custom regex patterns via `extra_patterns`. For anything more
-sophisticated than regex, propose it centrally — the cost of building a
-new check well is higher than it looks, and the platform team will help.
+sophisticated than regex, **open a GitHub issue** (or draft a PR) — new
+checks are easy to get wrong; upstream review helps everyone.
 
 **"Someone disabled a check in our config and I don't know why."**
 Read the `reason` field. If it's missing or empty, the config is invalid
@@ -709,15 +729,15 @@ Once you've recovered (or accepted the loss), three follow-ups:
 
 1. **Capture what happened in the audit log.** Add a manual entry to
   the configured audit log describing the incident, what was lost,
-   what was recovered, and how. This becomes evidence in the next
-   quarterly review.
+   what was recovered, and how. This becomes evidence for your team's
+   incident review.
 2. **Identify which guardrail would have prevented it.** Was
   `history-guard` mis-configured? Was the agent harness not wired to
    call `working-tree-guard snapshot`? Was the agent running with
    `--no-verify`? Whatever the gap, fix it for next time.
-3. **Report it centrally.** Even if the recovery was clean, the
-  platform team wants to know. Patterns across teams drive the next
-   release. File an incident report via the standard channel.
+3. **Report it upstream if it informs the product.** Even if the recovery
+  was clean, **file a GitHub issue** (redacted) if the gap was surprising —
+  patterns in public issues drive prioritisation for the next releases.
 
 ### 10.9 Things that look recoverable but aren't
 
@@ -741,19 +761,21 @@ them on.
 
 ## 11. Escalation
 
-In order:
+**Public Ripstop project (default):**
 
-1. `**#guardrails` channel** — quick questions, peer help.
-2. **Office hours** — design issues, advice, not-time-sensitive frustrations.
-3. **GitHub issue, P3** — false positives, feature requests, docs.
-4. **GitHub issue, P2** — blocking your team, workaround exists.
-5. **Platform team lead, direct message** — blocking your team, no
-  workaround, time-sensitive.
-6. **Eng leadership** — only when (5) hasn't responded within one working
-  day on a P1.
+1. **Search existing GitHub issues** — duplicates slow everyone down.
+2. **Open a new issue** — include version, rule ID, minimal repro where
+  possible. Use labels if the repo provides them.
+3. **Security-sensitive defects** — use **GitHub Security Advisories**
+  (private report) when available instead of a public issue.
 
-Don't skip levels unless it's genuinely urgent. Don't sit on a P1 because
-you're unsure it qualifies — if you're unsure, it does.
+**Inside your company** (if you adopt Ripstop org-wide), add whatever
+internal runbook fits: internal chat, on-call, etc. That layer is **yours**;
+the upstream project only sees **GitHub**.
+
+For **P1-style production incidents**, do not wait on issue triage — fix
+forward with a **documented bypass** (§5) and file the issue when the fire
+is out.
 
 ---
 
@@ -772,8 +794,8 @@ accumulated
 - `reflog-witness` is on, and the team has done at least one practice
 recovery so the runbook isn't being read for the first time mid-incident
 
-A team that's running this badly — and the platform team will notice — has
-the inverse. Don't be that team.
+A team that's running this badly — your **CI noise**, **bypass rate**, and
+**issue tracker** will show it — has the inverse. Don't be that team.
 
 ---
 
@@ -816,11 +838,11 @@ If you use `ripstop generate-md` (see §3.2a):
 
 - Regenerate after **every** meaningful `.guardrails.yaml` change.
 - Prefer a **small, atomic commit** that only touches config + `RIPSTOP.md`,
-  separate from feature work, so reviewers see drift fixes clearly.
+separate from feature work, so reviewers see drift fixes clearly.
 - When `ripstop-md-fresh` is enabled, forgetting regeneration **fails the
-  hook or CI on purpose** — treat that as a feature, not friction.
+hook or CI on purpose** — treat that as a feature, not friction.
 - **Do not hand-edit** `RIPSTOP.md`. If the generated text is wrong,
-  fix `.guardrails.yaml` (or the generator); the file is derived.
+fix `.guardrails.yaml` (or the generator); the file is derived.
 
 ### 13.2 Level 2 — Use a plugin package
 
@@ -843,7 +865,8 @@ checks; consumers install and reference. Versioned independently of the
 core library.
 
 When to use a plugin over local checks: when the same rule is wanted in
-three or more repos. One plugin, many consumers, central versioning.
+three or more repos. One plugin, many consumers, **one published version
+line** on npm.
 
 ### 13.3 Level 3 — Write a local check
 
@@ -893,8 +916,8 @@ checks:
     blocked_imports: ["pg", "mysql2", "sqlite3"]
 ```
 
-Local checks are reviewed in PR like any other code. The platform team
-does not own them; you do.
+Local checks are reviewed in PR like any other code. **Ripstop
+maintainers** do not own them; **you** do.
 
 ### 13.4 Stewardship — when to escalate a local check
 
@@ -903,30 +926,32 @@ broader gap. Use this rule:
 
 - **One repo finds it useful** → keep it local.
 - **A second repo wants it** → propose making it a plugin.
-- **A third repo wants it** → it should probably be in the central
-library or a preset.
+- **A third repo wants it** → it should probably move **upstream** (Ripstop
+core or a shared preset / plugin).
 
-The platform team's quarterly retrospective is the natural place to
-surface useful local checks. A check that has spread to ten repos as
-copy-paste local code is a failure of the central library, not a
-success of the local-check feature.
+If the same local check has been **copy-pasted across many repos**, treat
+that as a signal to **upstream** it (issue + PR) or extract a **plugin
+package** — not as a success of staying local forever.
 
 ### 13.5 What you should *not* override
 
 Some defaults exist for reasons that are not always obvious. Before
-overriding these, ask centrally:
+overriding these, **open an upstream GitHub issue** first unless you are
+certain the change is repo-local:
 
-- `**reflog-witness` mode.** It's near-zero cost and the data has
-saved engagements. `off` requires platform-team sign-off (§6).
+- `**reflog-witness` mode.** It's near-zero cost and the data is valuable.
+Turning it `off` should be rare and **reviewed like §6** in serious
+environments.
 - `**history-guard` `protected_branches`.** Removing entries here is
 rare and almost always a mistake. If `main` shouldn't be protected
 in your repo, something else is wrong.
 - **Default `pii` patterns from the preset.** Disabling a default
 pattern is fine for a confirmed false positive, but should be
-reported centrally first (§4.2).
+**reported upstream** first when the pattern is wrong for everyone
+(§4.2).
 
-When in doubt, the rule is: tune locally if it's a fit-to-context
-concern, escalate centrally if it's a fit-to-system concern.
+When in doubt: **tune locally** for one-repo context; **open an issue**
+when the default is wrong for **many** consumers.
 
 ---
 

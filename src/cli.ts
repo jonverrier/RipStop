@@ -13,6 +13,7 @@ import { parsePrePushInput } from './checks/HistoryGuard';
 import { loadConfig } from './config/load';
 import { FileSelection, Git } from './git/Git';
 import { IGenerateMdCommand, parseGenerateMdArgs, runGenerateMd } from './generateMd';
+import { IRecoverCommand, parseRecoverArgs, runRecoverConfigHistory } from './recover';
 import { createReporter } from './reporters/Reporter';
 import { runChecks } from './Runner';
 
@@ -43,13 +44,14 @@ interface IVersionCommand {
   command: 'version';
 }
 
-type Command = ICheckCommand | IListCommand | IExplainCommand | IVersionCommand | IGenerateMdCommand;
+type Command = ICheckCommand | IListCommand | IExplainCommand | IVersionCommand | IGenerateMdCommand | IRecoverCommand;
 
 const HELP_TEXT = `Ripstop guardrails
 
 Usage:
   ripstop check [--staged | --all | --diff <ref>] --trigger <trigger> [options]
   ripstop generate-md [options]
+  ripstop recover --config-history [--since <iso>] [--config <path>]
   ripstop list
   ripstop explain <check> [--resolved]
   ripstop version
@@ -60,6 +62,12 @@ generate-md options:
   --format <fmt>            markdown | claude | cursor | codex | q (default: markdown)
   --check-fresh             Exit 1 if RIPSTOP.md is missing or stale (no write)
   --dry-run                 Print generated markdown to stdout; do not write
+  (With --format claude, also writes .claude/settings.ripstop.json when not dry-run.)
+
+recover options:
+  --config-history          Required; print reflog-witness snapshots from witness log
+  --since <iso8601>         Only entries at or after this timestamp
+  --config <path>           Guardrails file (default: .guardrails.yaml)
 
 Check options:
   --config <path>           Config file path (default: .guardrails.yaml)
@@ -103,6 +111,10 @@ export function parseArgs(argv: string[]): Command {
     return parseGenerateMdArgs(rest);
   }
 
+  if (command === 'recover') {
+    return parseRecoverArgs(rest);
+  }
+
   throw new InvalidParameterError(`Unknown command: ${command}`);
 }
 
@@ -111,7 +123,7 @@ async function main(): Promise<void> {
   const registry = createDefaultRegistry();
 
   if (command.command === 'version') {
-    process.stdout.write('0.1.1\n');
+    process.stdout.write('0.2.0\n');
     return;
   }
 
@@ -138,6 +150,11 @@ async function main(): Promise<void> {
   if (command.command === 'generate-md') {
     const exitCode = await runGenerateMd(repoRoot, command);
     process.exit(exitCode);
+  }
+
+  if (command.command === 'recover') {
+    await runRecoverConfigHistory(repoRoot, command);
+    return;
   }
 
   const checkCommand = command;

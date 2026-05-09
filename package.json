@@ -1,14 +1,13 @@
 {
   "name": "@jonverrier/ripstop",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "description": "Git hook and CI guardrails for AI-assisted software development",
   "private": false,
   "type": "commonjs",
   "main": "dist/src/index.js",
   "types": "dist/src/index.d.ts",
   "bin": {
-    "ripstop": "dist/src/cli.js",
-    "agent-guardrails": "dist/src/cli.js"
+    "ripstop": "dist/src/cli.js"
   },
   "directories": {
     "src": "src",
@@ -38,7 +37,7 @@
     "clean": "rimraf dist coverage .nyc_output",
     "prepublishOnly": "npm run build",
     "test": "npm run test:ci",
-    "test:ci": "npm run build && mocha --no-config dist/test/Config.test.js dist/test/Cli.test.js dist/test/Checks.test.js dist/test/GenerateMd.test.js --exit",
+    "test:ci": "npm run build && mocha --no-config dist/test/Config.test.js dist/test/Cli.test.js dist/test/Checks.test.js dist/test/GenerateMd.test.js dist/test/Recover.test.js --exit",
     "cover": "nyc --reporter=html --reporter=text --reporter=lcov --extension .ts --exclude \"**/*.test.ts\" --exclude \"test/**\" npm run test:ci"
   },
   "dependencies": {

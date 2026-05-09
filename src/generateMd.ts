@@ -9,6 +9,7 @@ import * as path from 'path';
 import { InvalidParameterError } from '@jonverrier/assistant-common';
 import { hashResolvedRipstopConfig } from './config/configHash';
 import { loadConfig } from './config/load';
+import { buildClaudeRipstopDenySettingsJson } from './generators/claudeDenySettings';
 import { extractEmbeddedConfigHash, generateRipstopMarkdown, RipstopMdFormat } from './generators/markdown';
 
 const FORMATS: RipstopMdFormat[] = ['markdown', 'claude', 'cursor', 'codex', 'q'];
@@ -101,6 +102,12 @@ export async function runGenerateMd(repoRoot: string, command: IGenerateMdComman
 
   try {
     await fs.writeFile(resolvedOutput, markdown, 'utf8');
+    if (command.format === 'claude') {
+      const claudeDir = path.join(repoRoot, '.claude');
+      await fs.mkdir(claudeDir, { recursive: true });
+      const claudeSettingsPath = path.join(claudeDir, 'settings.ripstop.json');
+      await fs.writeFile(claudeSettingsPath, buildClaudeRipstopDenySettingsJson(), 'utf8');
+    }
   } catch (error) {
     const code = typeof error === 'object' && error !== null && 'code' in error ? (error as NodeJS.ErrnoException).code : undefined;
     process.stderr.write(`Ripstop failed to write ${resolvedOutput}: ${String(error)}\n`);

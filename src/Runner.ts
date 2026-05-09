@@ -124,7 +124,7 @@ function resolveRuntimePath(repoRoot: string, configuredPath: string): string {
 }
 
 function packageVersion(): string {
-  return '0.1.1';
+  return '0.2.0';
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

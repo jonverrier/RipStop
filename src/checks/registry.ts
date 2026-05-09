@@ -9,6 +9,7 @@ import { ICheck, Trigger } from './types';
 import { historyGuardCheck } from './HistoryGuard';
 import { pathGuardCheck } from './PathGuard';
 import { piiCheck } from './Pii';
+import { reflogWitnessCheck } from './ReflogWitness';
 import { ripstopMdFreshCheck } from './RipstopMdFresh';
 import { testSkipCheck } from './TestSkip';
 
@@ -17,7 +18,8 @@ const BUILT_IN_CHECKS: ICheck[] = [
   pathGuardCheck,
   testSkipCheck,
   historyGuardCheck,
-  ripstopMdFreshCheck
+  ripstopMdFreshCheck,
+  reflogWitnessCheck
 ];
 
 export class CheckRegistry {

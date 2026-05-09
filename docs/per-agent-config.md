@@ -1,6 +1,8 @@
 # Per-agent inclusion of `RIPSTOP.md`
 
-**Companion:** `ripstop-md-enhancement-spec.md`, `agent-guardrails-consumer-playbook.md`
+**Companion:** `ripstop-markdown-enhancement-spec.md`,
+`ripstop-self-protection-enhancement-spec.md`,
+`ripstop-consumer-playbook.md`
 
 This note lists **one-line patterns** to pull the generated `RIPSTOP.md`
 into each agent’s static context. Agents do not fetch URLs at session
@@ -24,10 +26,19 @@ In `CLAUDE.md` or `AGENTS.md`:
 Optional: also reference the consumer playbook:
 
 ```markdown
-@docs/agent-guardrails-consumer-playbook.md
+@docs/ripstop-consumer-playbook.md
 ```
 
 (`--format claude` adds a leading block that points at the playbook.)
+
+### Claude Code — harness deny list (optional)
+
+After `ripstop generate-md --format claude`, Ripstop writes
+**`.claude/settings.ripstop.json`** with `permissions.deny` entries for
+guardrails files. **Merge** that fragment into your real
+`.claude/settings.json` (shallow merge: concatenate and deduplicate
+`deny` arrays; do not overwrite unrelated settings). Until merged, the
+file has no effect.
 
 ---
 
@@ -81,3 +92,16 @@ new repo, confirm the exact key names (`context_files`, `include`, etc.)
 against the vendor’s current documentation; the **principle** is always
 the same: **static local file**, committed, regenerated from
 `.guardrails.yaml`.
+
+---
+
+## Forensics — `ripstop recover`
+
+To print chronological `reflog-witness` snapshots (including captured
+`.guardrails.yaml` hashes and optional content deltas) from the witness
+log:
+
+```bash
+npx ripstop recover --config-history
+npx ripstop recover --config-history --since 2026-01-01T00:00:00.000Z
+```

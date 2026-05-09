@@ -2,7 +2,7 @@
 
 ## Project Overview
 
-Ripstop is a TypeScript CLI package that enforces Git hook and CI guardrails for repositories where AI coding agents make changes. It is the implementation of the `agent-guardrails` specs in `docs/`.
+Ripstop is a TypeScript CLI package that enforces Git hook and CI guardrails for repositories where AI coding agents make changes. Product behaviour is defined in `docs/ripstop-spec.md`; adoption and operations are in `docs/ripstop-consumer-playbook.md`, with focused enhancement specs alongside them.
 
 The package is a tripwire at Git boundaries. It does not claim to sandbox agents or prevent direct filesystem destruction outside Git.
 
@@ -47,3 +47,4 @@ docs/                 product specs and consumer playbook
 - Do not delete untracked files.
 - Before committing, inspect `git status --short --branch` from the `Ripstop` repository.
 - Do not add AI attribution footers to commits.
+

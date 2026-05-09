@@ -4,15 +4,22 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
-import picomatch from 'picomatch';
 import { z } from 'zod';
 import { ICheck, ICheckContext, IFinding } from './types';
+import { isGuardrailsSelfProtectionPath, matchGlobPattern } from './selfProtectionPaths';
 
 const DEFAULT_APPROVAL_TRAILER = 'CHANGE-APPROVED';
 
+const DEFAULT_SELF_PROTECTION_MESSAGE = [
+  'You are attempting to modify a guardrails configuration file.',
+  'Modifying these files to bypass a check is itself a guardrail violation.',
+  'Open this change as a separate PR with rationale, and include CHANGE-APPROVED: <ticket> <reason> in the commit message.'
+].join(' ');
+
 const PathGuardConfigSchema = z.object({
   protected_paths: z.array(z.string()).default([]),
-  approval_trailer: z.string().default(DEFAULT_APPROVAL_TRAILER)
+  approval_trailer: z.string().default(DEFAULT_APPROVAL_TRAILER),
+  self_protection_message: z.string().optional()
 }).passthrough();
 
 export const pathGuardCheck: ICheck = {
@@ -22,8 +29,9 @@ export const pathGuardCheck: ICheck = {
   configSchema: PathGuardConfigSchema,
   async run(ctx: ICheckContext): Promise<IFinding[]> {
     const config = PathGuardConfigSchema.parse(ctx.config);
-    const matchers = config.protected_paths.map((pattern) => picomatch(pattern));
-    const protectedFiles = ctx.files.filter((file) => matchers.some((matcher) => matcher(file.path)));
+    const protectedFiles = ctx.files.filter((file) =>
+      config.protected_paths.some((pattern) => matchGlobPattern(pattern, file.path))
+    );
 
     if (protectedFiles.length === 0) {
       return [];
@@ -33,13 +41,22 @@ export const pathGuardCheck: ICheck = {
       return [];
     }
 
-    return protectedFiles.map((file) => ({
-      check: 'path-guard',
-      severity: ctx.mode === 'enforce' ? 'error' : 'warning',
-      file: file.path,
-      message: `Protected path modified without ${config.approval_trailer}: <reason> in the commit message.`,
-      ruleId: 'path-guard.approval-trailer'
-    }));
+    const selfMsg = typeof config.self_protection_message === 'string' && config.self_protection_message.trim().length > 0
+      ? config.self_protection_message.trim()
+      : DEFAULT_SELF_PROTECTION_MESSAGE;
+
+    return protectedFiles.map((file) => {
+      const self = isGuardrailsSelfProtectionPath(file.path);
+      return {
+        check: 'path-guard',
+        severity: ctx.mode === 'enforce' ? 'error' : 'warning',
+        file: file.path,
+        message: self
+          ? `${selfMsg} (Add ${config.approval_trailer}: <ticket> <reason> to the commit message.)`
+          : `Protected path modified without ${config.approval_trailer}: <reason> in the commit message.`,
+        ruleId: self ? 'path-guard.self-protection' : 'path-guard.approval-trailer'
+      };
+    });
   }
 };
 

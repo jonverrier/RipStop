@@ -65,4 +65,22 @@ extends: "@jonverrier/ripstop/presets/telco-bss"
     expect(config.checks['path-guard'].mode).toBe('enforce');
     expect(config.checks['pii'].mode).toBe('warn');
   });
+
+  it('internal-tooling path-guard includes self-protection paths', async () => {
+    const repoRoot = await fs.mkdtemp(path.join(os.tmpdir(), 'ripstop-config-self-'));
+    await fs.writeFile(path.join(repoRoot, '.guardrails.yaml'), `
+repo:
+  name: example
+  domain: tooling
+  tier: 2
+extends: "@jonverrier/ripstop/presets/internal-tooling"
+`, 'utf8');
+
+    const config = await loadConfig(repoRoot);
+    const pg = config.checks['path-guard'] as { protected_paths?: string[] };
+    expect(pg.protected_paths).toContain('.guardrails.yaml');
+    expect(pg.protected_paths).toContain('RIPSTOP.md');
+    expect(pg.protected_paths).toContain('.claude/settings.json');
+    expect(config.checks['reflog-witness']).toBeDefined();
+  });
 });

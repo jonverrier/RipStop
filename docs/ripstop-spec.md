@@ -55,7 +55,7 @@ don't reinvent them.
 | Persona               | What they need from this package                                                   |
 | --------------------- | ---------------------------------------------------------------------------------- |
 | Repo owner (engineer) | Wire it in once, get sensible defaults, override locally where genuinely needed    |
-| Platform team         | Centrally update checks and patterns; roll out new checks safely across the estate |
+| Maintainers / champions | Publish defaults and presets; triage **GitHub issues**; ship semver-safe releases (optional internal role when many repos adopt Ripstop) |
 | Security / compliance | Evidence that checks ran, what they caught, and an audit trail of bypasses         |
 | AI coding agent       | A clear, machine-readable error when it does something the org disallows           |
 
@@ -66,7 +66,7 @@ don't reinvent them.
 
 ```
 ┌──────────────────────────────────────────────────────────┐
-│  Central library: @jonverrier/ripstop                    │
+│  Published package: @jonverrier/ripstop                  │
 │  ┌────────────────────────────────────────────────────┐  │
 │  │  CLI entrypoint  (cli.ts)                          │  │
 │  │  Config loader   (reads .guardrails.yaml)          │  │
@@ -111,9 +111,7 @@ to the firm's / telco's internal artefact store. For repos that can't or
 won't install Node.
 
 A `setup` script in the install docs picks the right form based on the repo's
-existing toolchain. The CLI binary is named `ripstop`, with
-`agent-guardrails` retained as a compatibility alias while the original spec
-language is still in circulation.
+existing toolchain. The CLI binary is named `ripstop`.
 
 A **container image** (`ghcr.io/jonverrier/ripstop:<version>`) is a
 stretch deliverable for environments where neither npm nor binaries are
@@ -173,7 +171,7 @@ Tuesday afternoon loses adoption immediately.
 ## 6. Package layout
 
 ```
-agent-guardrails/
+ripstop/
 ├── src/
 │   ├── cli.ts                    # entrypoint
 │   ├── config/
@@ -336,23 +334,26 @@ bypass:
 
 ### 7.1 Repo tier
 
-The `repo.tier` field drives governance behaviour and is referenced
-throughout this spec and the consumer playbook. Tiers are:
+The optional `repo.tier` field drives **governance language** in this spec
+and the consumer playbook (who should sign off on `mode: off`, how hard to
+scrutinise bypasses). It is **not validated by Ripstop** — a convention for
+teams that want a shared vocabulary. **Single-repo or OSS adopters** may
+ignore tiers entirely or set one tier for documentation only.
 
-- **Tier 1** — production, customer-facing or revenue-bearing. Billing,
-customer data, network config in production. Strictest governance:
-exemptions need platform-team sign-off; bypasses are reviewed weekly;
-overrides require an explicit expiry condition.
-- **Tier 2** — production, internal-facing or supporting. Internal
-tooling that runs in production, non-customer-facing services.
-Standard governance.
-- **Tier 3** — non-production. Sandboxes, experiments, scratch repos.
-Light governance; the package still runs but the consumer contract
-obligations are advisory.
+Illustrative meanings (same as the playbook; adapt or drop for your org):
 
-Tier is declared in `.guardrails.yaml` and verified by the platform team
-during onboarding. Misclassification is itself a finding the platform
-team flags in quarterly review.
+- **Tier 1** — production, customer-facing or revenue-bearing. Strictest
+governance in the playbook: exemptions and `mode: off` expect **named
+reviewer sign-off** (your org defines who).
+- **Tier 2** — production, internal-facing or supporting. Standard
+governance.
+- **Tier 3** — non-production. Sandboxes, experiments. Lighter governance;
+the consumer obligations below are still good practice but not every team
+will enforce them the same way.
+
+**Misclassification** (wrong tier for the data class) is an **organisational**
+risk — not something Ripstop fails in CI. Large programmes may review tier
+choices periodically; a solo maintainer picks one tier and moves on.
 
 ### 7.2 Bypass and override — unified model
 
@@ -368,7 +369,8 @@ reviewers want to spot them at a glance.
 
 Both produce identical audit log entries (`type: bypass`, `rule: <rule-id>`). The consumer playbook §5 documents both with the same
 governance and review cadence. New rule-specific aliases require
-central approval; ad-hoc proliferation defeats the point.
+**upstream maintainer / org governance** approval before landing in the
+defaults; ad-hoc proliferation defeats the point.
 
 ### 7.3 Key behaviours
 
@@ -400,7 +402,7 @@ disable this entirely.
 ## 8. CLI interface
 
 ```
-agent-guardrails check [options]
+ripstop check [options]
 
   Run configured checks against the repo.
 
@@ -417,7 +419,7 @@ Options:
   --config <path>       Config file path (default: .guardrails.yaml)
   --bypass-allowed      Honour bypass trailers (default: per config)
 
-agent-guardrails snapshot [options]
+ripstop snapshot [options]
 
   Capture working-tree state to a recoverable snapshot. Invoked by an
   agent harness before destructive Git operations. Writes to
@@ -427,7 +429,7 @@ Options:
   --reason <string>     Logged with the snapshot for forensic context
   --quiet               Suppress stdout output (path goes to log only)
 
-agent-guardrails recover [options]
+ripstop recover [options]
 
   Inspect or restore from prior snapshots and witness data. Read-only by
   default; --apply is required to modify the working tree.
@@ -440,12 +442,12 @@ Options:
                         (overwrites current state — confirms first)
   --list                List all snapshots in retention window
 
-agent-guardrails list
+ripstop list
 
   Lists all available checks (built-in + plugins + local) and their
   current mode and triggers in this repo.
 
-agent-guardrails explain <check> [options]
+ripstop explain <check> [options]
 
   Prints documentation for a check, including its config keys and
   rationale.
@@ -454,7 +456,7 @@ Options:
   --resolved            Print the merged effective config for this check
                         (preset + plugin + local overrides applied)
 
-agent-guardrails version
+ripstop version
 
   Prints version. Used by audit and witness logs.
 ```
@@ -821,7 +823,7 @@ reflog-witness:
   audit_log_path: ".git/ripstop/witness.jsonl"
 ```
 
-**Recovery workflow:** When work is lost, `agent-guardrails recover --since <timestamp>` reads the witness log and prints the SHAs of HEAD
+**Recovery workflow:** When work is lost, `ripstop recover --since <timestamp>` reads the witness log and prints the SHAs of HEAD
 and any stashes that existed at recent invocations. The user then uses
 standard Git recovery (`git fsck --lost-found`, `git reflog`,
 `git checkout <sha>`) to retrieve the work. Documented in the consumer
@@ -838,7 +840,7 @@ actions.
 **Mechanism:** Two modes, both required for full coverage.
 
 *Pre-action mode* (invoked explicitly by an agent harness):
-`agent-guardrails snapshot` is called by the agent's tool-use harness
+`ripstop snapshot` is called by the agent's tool-use harness
 before any operation that could destroy working-tree state — `git checkout`, `git reset --hard`, `git stash` without explicit restore intent,
 `git clean`, or any file-write that would overwrite a dirty file. The
 command creates `.guardrails/snapshots/<timestamp>/` containing copies of
@@ -862,7 +864,7 @@ prevention is to snapshot *before* the action, which requires
 cooperation from the agent harness.
 
 **Honest limitation:** This check only protects against agents that have
-been configured to call `agent-guardrails snapshot` before destructive
+been configured to call `ripstop snapshot` before destructive
 actions. An agent operating purely through shell access and ignoring the
 harness wrapper defeats it. The `docs/per-agent-config.md` document
 specifies the wiring for each supported agent (Claude Code permissions
@@ -888,7 +890,7 @@ working-tree-guard:
 ℹ working-tree-guard [info] snapshot created
     Path: .guardrails/snapshots/2026-05-06T14-22-31Z/
     Files: 3 modified, 1 untracked
-    Recovery: agent-guardrails recover --snapshot <path>
+    Recovery: ripstop recover --snapshot <path>
 ```
 
 **Output example (orphaned snapshot warning at commit time):**
@@ -897,7 +899,7 @@ working-tree-guard:
 ⚠ working-tree-guard [warning] orphaned snapshot
     Snapshot from 2026-05-06T14:22:31Z (12 minutes ago) contains 3
     modified files not referenced by any commit. If you intended to
-    discard this work, run: agent-guardrails snapshot prune <path>
+    discard this work, run: ripstop snapshot prune <path>
     rule: working-tree-guard.orphan
 ```
 
@@ -942,7 +944,7 @@ have no plausible PII surface.
 
 ### 11.2 Effective config and resolution
 
-A repo's effective config is `preset ⊕ plugins ⊕ local ⊕ repo overrides`, applied in that order. The CLI's `agent-guardrails explain <check> --resolved` prints the merged config for any single check so
+A repo's effective config is `preset ⊕ plugins ⊕ local ⊕ repo overrides`, applied in that order. The CLI's `ripstop explain <check> --resolved` prints the merged config for any single check so
 devs can see exactly what's in effect, including which layer
 contributed which value.
 
@@ -973,7 +975,7 @@ but repos that choose a working-tree path must add the runtime directory to
 
 `**audit.jsonl**` — the compliance trail. Findings, bypasses,
 exemption uses, mode changes. One JSON object per relevant event.
-Read by humans, reviewers, and quarterly platform-team reviews.
+Read by humans, reviewers, and security or audit workflows **you** define.
 Schema includes: timestamp, version, repo, trigger, check, ruleId,
 severity, file, line, type (`finding | bypass | exemption | mode-change`),
 author, commit, reason (where applicable).
@@ -981,7 +983,7 @@ author, commit, reason (where applicable).
 `**witness.jsonl**` — the forensic recovery trail. Reflog snapshots,
 HEAD SHAs, branch states, stash inventory, snapshot directory
 references. Written by `reflog-witness` on every invocation it's
-configured for. Read forensically by `agent-guardrails recover` and
+configured for. Read forensically by `ripstop recover` and
 during incident response. Schema includes: timestamp, version, headSha,
 branch, reflog (last N entries), stashes, snapshots, knownRefs.
 
@@ -1022,7 +1024,8 @@ requires a worker/process boundary and is a future hardening item.
 - Both `audit.jsonl` and `witness.jsonl` are append-only by convention;
 the package never edits or deletes existing entries. Truncation,
 deletion, or out-of-band modification is detectable via line counts
-and is surfaced as a finding by the platform team's quarterly review.
+and may be surfaced by **integrity monitoring** or periodic review **your
+organisation** runs (Ripstop does not ship cross-repo aggregation).
 - Bypass usage is always logged with reason, regardless of config.
 - No network calls in the default check set. (Stretch checks that hit
 external services — e.g. licence lookup — must be opt-in and
@@ -1115,7 +1118,8 @@ A short, separate doc; summarised here:
 2. **Flip to `enforce`** on the pilot. Confirm the developer experience.
 3. **Roll out to peer repos** in `warn` mode. Use the audit logs to identify
   the most common findings; clean those up before flipping.
-4. **Estate-wide enforce** for the original check set.
+4. **Org-wide or fleet-wide `enforce`** for the original check set — *if*
+you run many repos; otherwise your single repo is “wide” enough.
 5. **New checks** ship in subsequent minor releases, always `warn` first.
 
 Rollout pace, not check coverage, is the variable that determines adoption.
@@ -1130,8 +1134,9 @@ commit boundary deliberately.)
 - A web dashboard for findings. Audit logs go to standard tooling.
 - Auto-fix. Some findings are auto-fixable in principle (redact a regex
 match), but the policy implications are subtle. Defer.
-- Cross-repo aggregation. The audit log is per-repo for now; central
-aggregation is a future platform-team concern.
+- Cross-repo aggregation. The audit log is per-repo for now; fleet-wide
+aggregation is **out of product scope** — build it with your own tooling
+if you need it.
 
 ---
 
@@ -1159,7 +1164,7 @@ The package ships when:
   audit and witness logs.
 10. `docs/per-agent-config.md` covers Claude Code, Cursor, Codex, and
   Amazon Q, including the working-tree-guard wiring for each.
-11. `agent-guardrails explain --resolved` produces correct merged config.
+11. `ripstop explain --resolved` produces correct merged config.
 12. The README's quick-start works on a fresh machine in under five
   minutes.
 13. The install documentation explicitly notes the unsigned-binary
@@ -1205,79 +1210,95 @@ push-payload parsing has edge cases worth testing thoroughly.
 
 ## 21. Consumer contract
 
-The package is one half of a contract; consuming teams are the other. A
-team's obligations as a client of the central library are formalised here
-and operationalised in the **consumer playbook** (`agent-guardrails-consumer-playbook.md`).
-This section is the authoritative reference; the playbook is how teams
-meet it in practice.
+Ripstop is **open source** (`@jonverrier/ripstop` on GitHub). There is **no
+vendor relationship** and **no guaranteed response time** on issues — only
+shared expectations so adopters and maintainers do not talk past each other.
 
-### 21.1 Obligations on consuming teams
+This section is the **normative** summary. The **consumer playbook**
+(`ripstop-consumer-playbook.md`) is the **operational** guide (hooks, triage,
+GitHub workflow). Where they differ on tone, the playbook wins for “how to
+run it day to day”; this section states the **intent** both sides rely on.
 
-A team that has installed `agent-guardrails` agrees to:
+### 21.1 Obligations on consuming teams (good faith)
+
+A team that **pins and runs** `ripstop` is expected to:
 
 1. **Respond to warn-only findings within one release cycle.** Checks that
-  ship in `warn` mode are scheduled to flip to `enforce` in the next
-   major. Accumulating warn findings is the path to broken CI.
-2. **Provide a `reason` on every exemption and override.** The reason must
-  be specific, dated where relevant, and traceable. Empty or boilerplate
-   reasons (`"legacy"`, `"TODO"`) are not valid; the package will reject
-   them in a future release.
+   ship in `warn` mode may flip to `enforce` in a **future major**.
+   Accumulating ignored warnings is how CI breaks on upgrade.
+2. **Provide a `reason` on every exemption and override.** Specific,
+   traceable, dated where relevant. Empty or boilerplate reasons (`"legacy"`,
+   `"TODO"`) defeat the audit trail; the package may tighten validation over
+   time.
 3. **Use bypass for incidents, not disagreements.** A bypass is a logged
-  admission that a finding is correct but the commit must land anyway.
-   Repeated bypasses on the same rule by the same team are a signal to
-   raise the underlying issue centrally, not to keep bypassing.
-4. **Pin the package version explicitly.** Auto-merging guardrail upgrades
-  on a major version boundary is not supported. Renovate / Dependabot
-   configurations must require human review.
-5. **Report false positives back centrally before working around them.**
-  Local exemptions for false positives are permitted as a stop-gap, but
-   only with a reference to a filed issue. The audit process flags
-   exemptions that lack issue references.
-6. **Do not edit the audit log.** The log is append-only by convention and
-  evidence in security review. Deleting entries is a violation of the
-   contract.
-7. **Surface significant configuration drift for review.** A repo whose
-  `.guardrails.yaml` has more lines of override than lines of preset
-   reference is materially diverging from the estate; the platform team
-   reviews these quarterly and may request consolidation.
+   admission that a finding is correct but the commit must land anyway.
+   Repeated bypasses on the same rule are a signal to **fix the cause** or
+   **open an upstream GitHub issue** if the rule is wrong for everyone — not
+   to normalise bypasses.
+4. **Pin the package version explicitly.** Auto-merge on **major** Ripstop
+   bumps without review is a foot-gun. Treat upgrades like any other
+   dependency with enforcement semantics.
+5. **Report false positives upstream before silencing them alone.** Local
+   exemptions as a **stop-gap** are fine **with a link to a GitHub issue** on
+   the Ripstop repo (or your fork’s tracker if you fork presets). That link is
+   how future readers know it is temporary and contested.
+6. **Do not edit the audit log.** Append-only by convention; tampering
+   breaks trust in incident review.
+7. **Keep config proportionate.** If `.guardrails.yaml` is mostly overrides
+   and little preset, treat that as **technical debt** — consolidate, fork a
+   preset, or document why the drift is permanent. No central team enforces
+   this; it is hygiene for your own reviewers.
 
-### 21.2 Obligations on the central library team
+### 21.2 Obligations on maintainers (upstream, best effort)
 
-Symmetrically, the team maintaining the package agrees to:
+The people publishing `@jonverrier/ripstop` aim to:
 
-1. **Honour the SLAs defined in the consumer playbook §4.5.**
-2. **Ship new checks in `warn` mode.** No previously-passing repo fails on
-  a minor version bump.
-3. **Document migration steps in every major release.**
-4. **Run a quarterly retrospective** with findings, false-positive rates,
-  and direction.
-5. **Maintain office hours** for design discussions and consumer feedback.
-6. **Respect the consumer's right to override** in scoped, justified
-  cases. The package is opinionated; it is not authoritarian.
+1. **Triage GitHub issues in good faith** — without SLA promises (see
+   consumer playbook §4.5). Security-sensitive reports use **GitHub Security
+   Advisories** when enabled.
+2. **Ship new checks in `warn` mode by default** where the semver policy
+   requires it, so a **minor** release does not newly fail repos that were
+   clean at the previous minor.
+3. **Document migration steps in major release notes** when behaviour or
+   config schema changes in breaking ways.
+4. **Publish source and tags** so consumers can bisect, fork, and pin.
+5. **Respect the consumer’s right to override** in scoped, justified cases —
+   the defaults are opinionated, not a mandate to run every check in
+   `enforce` everywhere.
 
-### 21.3 What invalidates the contract
+Office hours, fleet dashboards, and “estate-wide” governance are **optional
+organisational layers** on top — not part of the OSS default.
 
-A repo is considered out-of-contract when any of these are true:
+### 21.3 What “out of contract” means (and what it does *not* mean)
 
-- `mode: off` is set on a check without platform-team sign-off
-- An exemption lacks a `reason` (or the field is empty / boilerplate)
-- The audit log is missing, deleted, or being suppressed
-- Bypass volume exceeds 5% of commits in any quarter
-- The package is more than two major versions behind the current release
+“Out of contract” here means **not meeting the good-faith obligations in
+§21.1** — for example:
 
-Out-of-contract repos do not lose the package — but they do lose the
-support SLAs, and they appear in the platform team's quarterly review.
-Returning to contract is a matter of fixing the offending condition and
-flagging it in the next platform office hours.
+- `mode: off` on a check **without** the reviewer discipline your org agreed
+  to (see playbook §6 when you use tiers)
+- Exemptions without a real `reason`
+- Missing, deleted, or suppressed audit logs
+- Bypass volume so high it suggests the guardrails are not being operated as
+  policy (a **heuristic** some orgs monitor; not enforced by Ripstop)
+- Staying **many majors** behind current releases without a documented risk
+  acceptance
+
+**It does *not* mean** you lose access to the software (MIT). It does **not**
+mean a vendor withholds fixes — there is no vendor. It **does** mean
+**upstream triage may deprioritise** drive-by requests from repos that appear
+to be ignoring the shared rules, because signal-to-noise matters for a small
+maintainer pool.
+
+Returning to “in contract” behaviour is: fix the hygiene issues above and
+engage on **GitHub** with actionable reports.
 
 ### 21.4 Why this is in the spec
 
-A package without a consumer contract is a tool. A package with one is a
-product. The difference matters because the package outlives the people
-who built it: the contract is what new repo owners read in two years to
-understand what they're signing up for.
+A package without a consumer contract is a tool people **misconfigure and
+abandon**. A package with one is a **product people can rely on** — even
+when maintenance is volunteer-driven, because expectations are explicit.
 
-The playbook is the runbook. This is the constitution.
+The playbook is the runbook. This section is the short constitution.
 
 ---
 
@@ -1296,6 +1317,11 @@ human using the standard Git workflow:
 Caught by `pii` at pre-commit and CI.
 - **Modifications to change-controlled paths** without explicit human
 attestation. Caught by `path-guard` at pre-commit and CI.
+- **Casual self-bypass via guardrails config edit** — changing
+`.guardrails.yaml`, `.guardrails/`, `RIPSTOP.md`, or Claude settings
+fragments without a `CHANGE-APPROVED` trailer in the commit message.
+Preset defaults include these paths under `path-guard`; the check fails
+the commit the same way as for other protected paths.
 - **New test-skip annotations** without ticket references. Caught by
 `test-skip` at pre-commit and CI.
 - **New runtime dependencies** without an accompanying ADR. Caught by
@@ -1305,7 +1331,9 @@ by `history-guard` at pre-push.
 - **Rebases of already-pushed commits.** Caught by `history-guard` at
 pre-rebase.
 - **Loss of forensic recovery data** after a destructive operation.
-Mitigated by `reflog-witness`'s continuous capture.
+Mitigated by `reflog-witness`'s continuous capture of repository state,
+including hashes (and content on change) of `.guardrails.yaml` and the
+hash of `RIPSTOP.md` for configuration drift investigation.
 
 ### 22.2 What the package partially prevents
 
@@ -1314,7 +1342,7 @@ not eliminate it:
 
 - **Destruction of unstaged working-tree changes.** `working-tree-guard`
 protects against this *only* when the agent's harness is configured to
-call `agent-guardrails snapshot` before destructive operations. An
+call `ripstop snapshot` before destructive operations. An
 agent that bypasses the wrapper defeats it. Per-agent harness wiring
 is documented separately; the more conservative the harness
 configuration, the stronger the protection.
@@ -1331,6 +1359,12 @@ agent's session context, which raises the probability the agent gets
 things right first time. It does not guarantee compliance — agent-config
 files are advisory, and a determined or jailbroken agent can ignore them.
 The Layer 2 enforcement at commit time remains the binding control.
+- **Self-protection of agent-config files (Cursor, Codex, Amazon Q).**
+Generated “do not modify guardrails files” prose in `RIPSTOP.md` is
+advisory — same limits as Layer 1 generally. **Claude Code** can merge
+`.claude/settings.ripstop.json` (from `ripstop generate-md --format claude`)
+into `settings.json`; `permissions.deny` there is harness-enforced when
+the merge is applied.
 
 ### 22.3 What the package does not prevent
 
@@ -1382,13 +1416,17 @@ layers without changing that classification:
 - **`working-tree-guard`** spans Layer 2 and Layer 3: its pre-commit mode
   is pure Layer 2 (orphan detection at commit time), but its pre-action
   mode requires Layer 3 cooperation (the agent's harness must invoke
-  `agent-guardrails snapshot` before destructive operations). Where Layer
+  `ripstop snapshot` before destructive operations). Where Layer
   3 cooperation is unavailable, it degrades to commit-time orphan
   warnings only.
 - **Generated `RIPSTOP.md`** populates Layer 1 (agent-readable config)
   from the same resolved configuration that drives Layer 2 enforcement.
   It reduces drift between what agents read and what hooks enforce; it
   does not replace a well-maintained `AGENTS.md` or harness sandboxing.
+- **Self-protection copy and optional Claude deny JSON** extend that
+  Layer 1 reach with explicit “do not modify guardrails files” rules;
+  binding enforcement for those paths remains `path-guard` at commit
+  time.
 
 The package is most effective when deployed alongside Layers 1 and 3,
 not in place of them. Selling it as "comprehensive AI safety" is

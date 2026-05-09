@@ -51,4 +51,15 @@ describe('CLI', () => {
       configPath: 'custom.yaml'
     });
   });
+
+  it('parses recover --config-history', () => {
+    const command = parseArgs(['recover', '--config-history', '--since', '2026-01-01T00:00:00.000Z']);
+
+    expect(command).toMatchObject({
+      command: 'recover',
+      configHistory: true,
+      since: '2026-01-01T00:00:00.000Z',
+      configPath: '.guardrails.yaml'
+    });
+  });
 });

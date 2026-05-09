@@ -2,7 +2,7 @@
 
 **Status:** Living document (engineering plan)  
 **Audience:** Maintainers and consumers aligning on what exists vs. what comes next  
-**Companion:** `agent-guardrails-spec.md` (full behaviour and future checks), `agent-guardrails-consumer-playbook.md` (adoption and recovery)
+**Companion:** `ripstop-spec.md` (full behaviour and future checks), `ripstop-consumer-playbook.md` (adoption and recovery)
 
 ---
 
@@ -12,7 +12,7 @@ This file records **what `@jonverrier/ripstop` already does**, **what we should 
 
 ---
 
-## 2. What is shipped and working today (v0.1.x)
+## 2. What is shipped and working today (v0.2.x)
 
 These checks are **implemented**, run via `ripstop check`, and are **fully opt-in per repository** through `.guardrails.yaml` (and optional `extends:` presets). Each check supports **`mode: off | warn | enforce`** unless noted.
 
@@ -23,11 +23,13 @@ These checks are **implemented**, run via `ripstop check`, and are **fully opt-i
 | **`test-skip`** | `pre-commit`, `ci` | Warns/enforces on disallowed test-skip patterns and optional ticket requirement. |
 | **`history-guard`** | **`pre-push` only** | On protected branches (glob patterns), blocks **force push** and **remote branch delete** when configured. Uses stdin lines Git passes to `pre-push` (`--remote`, stdin parsing in CLI). |
 | **`ripstop-md-fresh`** | `pre-commit`, `ci` | Fails (per `mode`) when `RIPSTOP.md` is missing or its embedded **config hash** does not match the resolved `.guardrails.yaml` (including preset merge). |
-| **`ripstop generate-md`** | *(CLI)* | Writes `RIPSTOP.md` from resolved config; supports `--format`, `--dry-run`, `--check-fresh`, `--output`, `--config`. |
+| **`ripstop generate-md`** | *(CLI)* | Writes `RIPSTOP.md` from resolved config; supports `--format`, `--dry-run`, `--check-fresh`, `--output`, `--config`. With `--format claude`, also writes `.claude/settings.ripstop.json`. |
+| **`reflog-witness`** | `pre-commit`, `pre-push`, `pre-rebase`, `ci` | Appends witness JSONL with `.guardrails.yaml` hash + optional content on change and `RIPSTOP.md` hash. |
+| **`ripstop recover`** | *(CLI)* | `recover --config-history [--since]` prints `reflog-witness` records from the witness log. |
 
-**Also shipped:** YAML config load + preset merge (`extends: @jonverrier/ripstop/presets/...`), built-in presets (`internal-tooling`, `telco-generic`), CLI (`ripstop` / `agent-guardrails` alias), human + JSON reporting, and **structured audit logging** of findings to the path in `reporting.audit_log` (default `.git/ripstop/audit.jsonl`). A **witness** writer and default `witness_log` path exist in code and config, but **no check yet appends reflog-style witness records** — treat witness as **reserved for `reflog-witness`** until that ships.
+**Also shipped:** YAML config load + preset merge (`extends: @jonverrier/ripstop/presets/...`), built-in presets (`internal-tooling`, `telco-generic`), CLI (`ripstop`), human + JSON reporting, **structured audit logging** to `reporting.audit_log` (default `.git/ripstop/audit.jsonl`), and **witness JSONL** to `reporting.witness_log` (default `.git/ripstop/witness.jsonl`) populated by `reflog-witness`.
 
-**Documented in the spec but not implemented yet** (non-exhaustive): `reflog-witness`, `working-tree-guard`, `dependency-guard`, **`history-guard` on `pre-rebase`** (e.g. rebasing commits that already exist on a remote — still spec-only for that hook), container/binary distribution extras.
+**Documented in the spec but not implemented yet** (non-exhaustive): `working-tree-guard`, `dependency-guard`, **`history-guard` on `pre-rebase`** (e.g. rebasing commits that already exist on a remote — still spec-only for that hook), container/binary distribution extras.
 
 ---
 
@@ -64,7 +66,7 @@ So “less strict control” here should mean:
 1. **Not** pretending a `pre-commit` hook can block `git reset --hard` that an agent ran five minutes ago.
 2. **Yes** offering a **graded** policy: e.g. **warn** when we detect risk signals we *can* see, **snapshot** (when harness calls Ripstop) before destructive ops, and optionally **block** only in harnesses that support an interactive confirm — all **configurable** (`mode`, `on_destructive_command: snapshot | warn | block`, retention), per repo.
 
-The spec’s **`working-tree-guard`** (§10.7 in `agent-guardrails-spec.md`) describes this honestly: **full prevention requires agent-harness cooperation**; Ripstop can still add **snapshot**, **orphan snapshot warnings** at commit time, and documentation for Cursor/Claude wiring.
+The spec’s **`working-tree-guard`** (§10.7 in `ripstop-spec.md`) describes this honestly: **full prevention requires agent-harness cooperation**; Ripstop can still add **snapshot**, **orphan snapshot warnings** at commit time, and documentation for Cursor/Claude wiring.
 
 **Consumer configurability (required for this track):**
 

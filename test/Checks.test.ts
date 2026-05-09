@@ -12,6 +12,7 @@ import { pathGuardCheck } from '../src/checks/PathGuard';
 import { testSkipCheck } from '../src/checks/TestSkip';
 import { piiCheck } from '../src/checks/Pii';
 import { parsePrePushInput, historyGuardCheck } from '../src/checks/HistoryGuard';
+import { reflogWitnessCheck } from '../src/checks/ReflogWitness';
 import { AuditWriter } from '../src/logs/AuditWriter';
 import { WitnessWriter } from '../src/logs/WitnessWriter';
 import { ICheckContext, IFileEntry } from '../src/checks/types';
@@ -170,6 +171,68 @@ describe('Checks', () => {
     expect(findings).toHaveLength(1);
     expect(findings[0].ruleId).toBe('ripstop-md-fresh.missing');
   });
+
+  it('path-guard flags self-protection paths with dedicated rule id', async () => {
+    const ctx = await createContext({
+      trigger: 'commit-msg',
+      mode: 'enforce',
+      config: {
+        protected_paths: ['.guardrails.yaml'],
+        approval_trailer: 'CHANGE-APPROVED',
+        self_protection_message: 'Do not weaken guardrails config.'
+      },
+      commitMessage: 'tweak config',
+      files: [fileEntry('.guardrails.yaml', 'repo:\n  name: x\n')]
+    });
+
+    const findings = await pathGuardCheck.run(ctx);
+
+    expect(findings).toHaveLength(1);
+    expect(findings[0].ruleId).toBe('path-guard.self-protection');
+    expect(findings[0].message).toContain('Do not weaken guardrails config.');
+  });
+
+  it('path-guard uses default self-protection wording for RIPSTOP.md', async () => {
+    const ctx = await createContext({
+      trigger: 'commit-msg',
+      mode: 'enforce',
+      config: {
+        protected_paths: ['RIPSTOP.md'],
+        approval_trailer: 'CHANGE-APPROVED'
+      },
+      commitMessage: 'edit ripstop',
+      files: [fileEntry('RIPSTOP.md', '# x')]
+    });
+
+    const findings = await pathGuardCheck.run(ctx);
+
+    expect(findings[0].ruleId).toBe('path-guard.self-protection');
+    expect(findings[0].message).toContain('guardrails configuration file');
+  });
+
+  it('reflog-witness appends a witness record with config hash', async () => {
+    const ctx = await createContext({
+      trigger: 'pre-commit',
+      mode: 'enforce',
+      config: {},
+      files: []
+    });
+    await fs.mkdir(path.join(ctx.repoRoot, '.git', 'ripstop'), { recursive: true });
+    await fs.writeFile(path.join(ctx.repoRoot, '.guardrails.yaml'), 'repo:\n  name: w\n  domain: w\n  tier: 2\n', 'utf8');
+
+    const findings = await reflogWitnessCheck.run(ctx);
+
+    expect(findings).toHaveLength(0);
+    const witnessPath = path.join(ctx.repoRoot, '.git', 'ripstop', 'witness.jsonl');
+    const raw = await fs.readFile(witnessPath, 'utf8');
+    const lines = raw.split(/\r?\n/).filter(Boolean);
+    const last = JSON.parse(lines[lines.length - 1] ?? '{}') as Record<string, unknown>;
+    expect(last.type).toBe('reflog-witness');
+    const cfg = last.config as { hash?: string; content?: string };
+    expect(typeof cfg.hash).toBe('string');
+    expect(cfg.hash?.length).toBe(64);
+    expect(typeof cfg.content).toBe('string');
+  });
 });
 
 async function createContext(overrides: Partial<ICheckContext>): Promise<ICheckContext> {
@@ -180,8 +243,8 @@ async function createContext(overrides: Partial<ICheckContext>): Promise<ICheckC
     files: [],
     config: {},
     mode: 'warn',
-    audit: new AuditWriter(path.join(repoRoot, '.git/ripstop/audit.jsonl'), '0.1.0', 'test'),
-    witness: new WitnessWriter(path.join(repoRoot, '.git/ripstop/witness.jsonl'), '0.1.0', 'test'),
+    audit: new AuditWriter(path.join(repoRoot, '.git/ripstop/audit.jsonl'), '0.2.0', 'test'),
+    witness: new WitnessWriter(path.join(repoRoot, '.git/ripstop/witness.jsonl'), '0.2.0', 'test'),
     resolvedRipstopConfig: RipstopConfigSchema.parse({
       repo: { name: 'test', domain: 'test', tier: 2 }
     }),

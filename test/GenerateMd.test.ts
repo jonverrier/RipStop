@@ -25,11 +25,12 @@ describe('GenerateMd', () => {
     const config = await loadConfig(fixtureRoot, '.guardrails.yaml');
     const hash = hashResolvedRipstopConfig(config);
     const md = generateRipstopMarkdown(config, {
-      packageVersion: '0.1.0',
+      packageVersion: '0.2.0',
       generatedAtIso: '2026-05-06T12:00:00.000Z',
       configHash: hash,
       format: 'markdown'
     });
+    expect(md).toContain('## What you must not modify');
     expect(extractEmbeddedConfigHash(md)).toBe(hash);
     const goldenPath = path.join(fixtureRoot, 'RIPSTOP.golden.md');
     const golden = await fs.readFile(goldenPath, 'utf8');
@@ -59,6 +60,31 @@ describe('GenerateMd', () => {
     const command = parseGenerateMdArgs(['--check-fresh', '--output', 'RIPSTOP.md']);
     expect(command.checkFresh).toBe(true);
     expect(command.outputPath).toBe('RIPSTOP.md');
+  });
+
+  it('runGenerateMd with format claude writes .claude/settings.ripstop.json', async () => {
+    const tmp = await fs.mkdtemp(path.join(require('os').tmpdir(), 'ripstop-claude-'));
+    await fs.writeFile(path.join(tmp, '.guardrails.yaml'), `
+repo:
+  name: z
+  domain: z
+  tier: 2
+extends: "@jonverrier/ripstop/presets/internal-tooling"
+`, 'utf8');
+
+    const exitCode = await runGenerateMd(tmp, {
+      command: 'generate-md',
+      configPath: '.guardrails.yaml',
+      outputPath: 'RIPSTOP.md',
+      format: 'claude',
+      checkFresh: false,
+      dryRun: false
+    });
+
+    expect(exitCode).toBe(0);
+    const raw = await fs.readFile(path.join(tmp, '.claude', 'settings.ripstop.json'), 'utf8');
+    const parsed = JSON.parse(raw) as { permissions?: { deny?: string[] } };
+    expect(parsed.permissions?.deny?.some((d) => d.includes('.guardrails.yaml'))).toBe(true);
   });
 
   it('runGenerateMd check-fresh exits 1 when file missing', async () => {

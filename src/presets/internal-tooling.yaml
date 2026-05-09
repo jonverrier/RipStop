@@ -16,7 +16,16 @@ checks:
       - "migrations/**"
       - "*.policy.yaml"
       - ".github/workflows/**"
+      - ".guardrails.yaml"
+      - ".guardrails/**"
+      - "RIPSTOP.md"
+      - ".claude/settings.json"
+      - ".claude/settings.ripstop.json"
     approval_trailer: "CHANGE-APPROVED"
+
+  reflog-witness:
+    mode: enforce
+    triggers: [pre-commit, pre-push, pre-rebase, ci]
 
   test-skip:
     mode: warn
