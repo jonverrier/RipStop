@@ -34,7 +34,7 @@ describe('GenerateMd', () => {
     expect(extractEmbeddedConfigHash(md)).toBe(hash);
     const goldenPath = path.join(fixtureRoot, 'RIPSTOP.golden.md');
     const golden = await fs.readFile(goldenPath, 'utf8');
-    expect(md).toBe(golden);
+    expect(md.replace(/\r\n/g, '\n')).toBe(golden.replace(/\r\n/g, '\n'));
   });
 
   it('parses generate-md CLI', () => {

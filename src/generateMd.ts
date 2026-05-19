@@ -159,7 +159,17 @@ function parseMdFormat(value: string): RipstopMdFormat {
 }
 
 async function readRipstopPackageVersion(): Promise<string> {
-  const pkgPath = path.join(__dirname, '..', '..', 'package.json');
-  const raw = JSON.parse(await fs.readFile(pkgPath, 'utf8')) as { version?: string };
-  return typeof raw.version === 'string' ? raw.version : '0.0.0';
+  const candidates = [
+    path.join(__dirname, '..', '..', 'package.json'),
+    path.join(__dirname, '..', 'package.json')
+  ];
+  for (const pkgPath of candidates) {
+    try {
+      const raw = JSON.parse(await fs.readFile(pkgPath, 'utf8')) as { version?: string };
+      return typeof raw.version === 'string' ? raw.version : '0.0.0';
+    } catch {
+      // try next path (dist/src vs src when tests run via ts-jest)
+    }
+  }
+  return '0.0.0';
 }

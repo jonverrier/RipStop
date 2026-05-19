@@ -1,6 +1,6 @@
 {
   "name": "@jonverrier/ripstop",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Git hook and CI guardrails for AI-assisted software development",
   "private": false,
   "type": "commonjs",
@@ -34,50 +34,26 @@
   "scripts": {
     "build": "tsc -b && node scripts/copy-assets.js",
     "prepare": "npm run build",
-    "clean": "rimraf dist coverage .nyc_output",
+    "clean": "rimraf dist coverage",
     "prepublishOnly": "npm run build",
-    "test": "npm run test:ci",
-    "test:ci": "npm run build && mocha --no-config dist/test/Config.test.js dist/test/Cli.test.js dist/test/Checks.test.js dist/test/GenerateMd.test.js dist/test/Recover.test.js --exit",
-    "cover": "nyc --reporter=html --reporter=text --reporter=lcov --extension .ts --exclude \"**/*.test.ts\" --exclude \"test/**\" npm run test:ci"
+    "test": "jest --selectProjects unit",
+    "test:ci": "jest --selectProjects ci",
+    "cover": "jest --selectProjects ci --coverage --coverageReporters=html text lcov"
   },
   "dependencies": {
-    "@jonverrier/assistant-common": "^0.3.2",
+    "@jonverrier/assistant-common": "^0.3.4",
     "js-yaml": "^4.1.0",
     "picomatch": "^4.0.3",
     "zod": "^4.1.13"
   },
   "devDependencies": {
+    "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
-    "@types/mocha": "^10.0.10",
     "@types/node": "^24.0.10",
     "expect": "^29.7.0",
-    "mocha": "^11.7.1",
-    "nyc": "^17.1.0",
+    "jest": "^29.7.0",
     "rimraf": "^6.0.1",
-    "ts-node": "^10.9.2",
+    "ts-jest": "^29.2.5",
     "typescript": "5.9.3"
-  },
-  "nyc": {
-    "include": [
-      "src/**/*.ts"
-    ],
-    "extension": [
-      ".ts"
-    ],
-    "exclude": [
-      "**/*.d.ts",
-      "**/*.test.ts",
-      "test/**",
-      "dist/**",
-      "coverage/**",
-      "node_modules/**"
-    ],
-    "reporter": [
-      "html",
-      "text",
-      "lcov"
-    ],
-    "all": true,
-    "check-coverage": false
   }
 }
