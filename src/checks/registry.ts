@@ -4,6 +4,17 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// This module provides a simple registry for “checks” and logic to pick which checks should run for a given trigger. It defines a built-in set of checks and exposes a registry that can also be constructed with a custom list.
+// 
+// CheckRegistry is the main export. It stores checks keyed by their unique name in a Map for fast lookup. list() returns all registered checks sorted by name. get(name) returns a specific check and throws an InvalidParameterError when the name is not registered, making configuration errors explicit. select(trigger, requestedChecks) returns only the checks that declare support for the provided Trigger. If requestedChecks is provided, it resolves those names first (and validates them via get); otherwise it considers all registered checks.
+// 
+// createDefaultRegistry() is a convenience factory that returns a CheckRegistry preloaded with the built-in checks.
+// 
+// The module relies on the ICheck and Trigger types plus the imported built-in check implementations (pii, path guard, test skip, history guard, ripstop-md freshness, and reflog witness).
+// ===End StrongAI Generated Comment===
+
+
 import { InvalidParameterError } from '@jonverrier/assistant-common';
 import { ICheck, Trigger } from './types';
 import { historyGuardCheck } from './HistoryGuard';

@@ -4,6 +4,11 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// This module enforces safe Git push behavior by detecting destructive remote history operations during pre-push hooks. It focuses on protected branches and reports findings when a push attempts to delete a protected remote branch or perform a force update. The main export, historyGuardCheck, is an ICheck implementation that runs in the pre-push trigger. It validates and normalizes configuration with a Zod schema, supports glob-style protected branch patterns, and returns IFinding entries with severity based on the current mode (warning in non-enforced runs, error in enforce mode). The other export, parsePrePushInput, parses the raw pre-push stdin text into ref update records, marking force updates via a leading “+” on the local ref and deletions via the all-zero SHA. The module relies on picomatch to compile branch globs into matchers, and on zod to define defaults and safely parse user config.
+// ===End StrongAI Generated Comment===
+
+
 import picomatch from 'picomatch';
 import { z } from 'zod';
 import { ICheck, ICheckContext, IFinding } from './types';

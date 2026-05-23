@@ -4,6 +4,19 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Small Git command adapter used by Ripstop checks. It runs a few git commands and converts their output into file entries that checks can inspect for content and diffs.
+// 
+// Exports FileSelection, a union that selects which files to operate on: all tracked files, staged changes, or changes relative to a ref (ref...HEAD).
+// 
+// Exports the Git class. Construct it with a working directory. repoRoot() returns the absolute repository root using git rev-parse. files(repoRoot, selection) returns an array of IFileEntry objects for the chosen file set. For “all”, it lists tracked files via git ls-files and reads content from the working tree. For “staged”, it uses git diff --cached --name-status, reads staged content via git show :path, and provides a staged diff. For “diff”, it computes name-status against a ref and provides per-file diffs, with special handling for the empty-tree SHA.
+// 
+// readCommitMessage() reads the commit-msg hook file from disk.
+// 
+// Key dependencies: child_process.execFile (promisified) to invoke git, fs/promises and path for file reading, and InvalidOperationError for consistent failure reporting.
+// ===End StrongAI Generated Comment===
+
+
 import * as childProcess from 'child_process';
 import * as fs from 'fs/promises';
 import * as path from 'path';

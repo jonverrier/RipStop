@@ -4,6 +4,15 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Regex-based PII scanning check for source files during pre-commit and CI runs. The module defines a small set of default patterns (currently email addresses and UK mobile numbers) and reports any matching lines as findings.
+// 
+// The main export is piiCheck, an ICheck implementation. It exposes metadata (name, description, supportedTriggers) and a configSchema, then runs an async scan over ctx.files. For each non-deleted file, it skips paths covered by configured exemptions, reads file content, splits it into lines, and tests each line against each configured regex. When a match is found, it emits an IFinding with file path, 1-based line number, a ruleId of the form pii.<patternName>, and a severity that is error in enforce mode and warning otherwise.
+// 
+// It relies on zod to validate and default the configuration (patterns, extra_patterns, exemptions) and on picomatch to turn exemption path globs into matchers. It uses shared types (ICheck, ICheckContext, IFinding) from the local types module.
+// ===End StrongAI Generated Comment===
+
+
 import picomatch from 'picomatch';
 import { z } from 'zod';
 import { ICheck, ICheckContext, IFinding } from './types';

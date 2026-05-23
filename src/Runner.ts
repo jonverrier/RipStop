@@ -4,6 +4,11 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Executes Ripstop checks for a single CLI run. The module gathers the target file set from Git, selects the appropriate checks for a given trigger, runs them, and returns aggregated results. The main export is runChecks, which takes a resolved IRipstopConfig, a CheckRegistry, a Git adapter, and IRunOptions. It loads files via git.files, creates AuditWriter and WitnessWriter instances for runtime logging, then iterates the selected checks. For each check it parses per-check config with the check’s configSchema, determines the effective mode (override or config, defaulting to warn), optionally filters by configured triggers, and invokes check.run with commit and push context plus the resolved config and log writers. Each finding is appended to the audit log and included in the returned IRunResult, with counts for enforcedFailures (errors) and warnings. It relies on Node’s path for safe relative log paths and InvalidParameterError to reject absolute log destinations.
+// ===End StrongAI Generated Comment===
+
+
 import * as path from 'path';
 import { InvalidParameterError } from '@jonverrier/assistant-common';
 import { CheckMode, IFinding, IPushPayload, Trigger } from './checks/types';

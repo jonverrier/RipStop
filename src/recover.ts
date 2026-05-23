@@ -4,6 +4,15 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Implements the `ripstop recover --config-history` CLI behavior. The module focuses on reading a “witness log” file and printing stored configuration snapshots in chronological order, optionally filtered by time.
+// 
+// Exports IRecoverCommand, which describes the parsed command shape: the fixed `recover` command token, the required `configHistory` switch, an optional `since` timestamp string, and a configurable config file path (default `.guardrails.yaml`). Exports parseRecoverArgs, which parses argv (excluding `recover`), supports `--config-history`, `--since <timestamp>`, and `--config <path>`, rejects unknown flags, and currently errors unless `--config-history` is provided. Exports runRecoverConfigHistory, which loads the repository config, locates the witness log path, handles missing logs gracefully, parses JSONL entries of type `reflog-witness`, filters by `--since`, sorts by timestamp, and writes pretty-printed JSON to stdout.
+// 
+// Relies on fs/promises and path for file access and path resolution, loadConfig for reading configuration, and InvalidParameterError for consistent CLI validation errors.
+// ===End StrongAI Generated Comment===
+
+
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { InvalidParameterError } from '@jonverrier/assistant-common';

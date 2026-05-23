@@ -4,6 +4,11 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Appends “witness” records that snapshot guardrails configuration state for later forensic recovery. The module exports reflogWitnessCheck, an ICheck implementation that runs on pre-commit, pre-push, pre-rebase, and CI triggers. On each run it reads the configured .guardrails.yaml (or other path), computes a SHA-256 hash, and compares it to the most recent reflog-witness entry already written to the witness log. If the hash changed and the file is not too large, it also stores the full YAML content in the new record. It also hashes RIPSTOP.md (or a configured path) and records that hash alongside the guardrails data. Each record includes the trigger and the current Git branch name when available. zod is used to validate and default configuration inputs, including size limits. crypto provides hashing, fs/promises and path handle file access and path resolution, and child_process execFile is used to query Git for the current branch.
+// ===End StrongAI Generated Comment===
+
+
 import * as crypto from 'crypto';
 import * as fs from 'fs/promises';
 import * as path from 'path';

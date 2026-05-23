@@ -4,6 +4,15 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// This module produces a deterministic SHA-256 hash for a fully resolved Ripstop configuration, intended for checking RIPSTOP.md freshness. It focuses on stable, repeatable hashing by converting the config into a canonical string form before hashing.
+// 
+// stableStringify(value) serialises any JSON-like value into a consistent string. It handles null, numbers, booleans, strings, bigints, arrays, and objects. Arrays preserve element order. Objects are emitted with keys sorted lexicographically to avoid hash changes from key insertion order. Undefined object properties are normalised to null so missing versus undefined does not cause unstable output. Non-JSON primitive types are coerced to strings.
+// 
+// hashResolvedRipstopConfig(config) computes the lowercase hex SHA-256 digest of the canonical serialisation of an IRipstopConfig object. It uses Node’s crypto module for hashing and relies on the IRipstopConfig type from the local schema module to ensure the input represents a validated, post-merge configuration.
+// ===End StrongAI Generated Comment===
+
+
 import * as crypto from 'crypto';
 import { IRipstopConfig } from './schema';
 

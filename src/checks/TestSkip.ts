@@ -4,6 +4,11 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Detects newly introduced test-skip annotations in code diffs and reports them as findings. The module exports a single check, testSkipCheck, which conforms to the ICheck interface and is intended to run in both pre-commit and CI triggers. On execution, it parses user configuration with a Zod schema that provides defaults for blocked annotation substrings (for example “it.skip(”, “describe.skip(”, “@skip”) and a ticket reference pattern. For each non-deleted file that exposes a diff, it scans only added diff lines and looks for any blocked annotation. If a blocked annotation is added and require_ticket is enabled, it requires a ticket ID match either on the same added line or the immediately preceding added line. Missing tickets produce an IFinding with severity based on ctx.mode (error in enforce mode, otherwise warning) and a stable ruleId. The helper compileTicketRegex turns the configured pattern into a RegExp. Key dependencies are zod for config validation and local types (ICheck, ICheckContext, IFinding) for integration.
+// ===End StrongAI Generated Comment===
+
+
 import { z } from 'zod';
 import { ICheck, ICheckContext, IFinding } from './types';
 

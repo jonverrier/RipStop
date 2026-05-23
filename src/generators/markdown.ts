@@ -4,6 +4,15 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Builds the RIPSTOP.md guardrails document from a resolved Ripstop configuration. It turns enabled checks in the config into a human-readable “what this repo blocks” section, adds standard guidance and self-protection rules, and writes a header/footer that records generation time, package version, and a SHA-256 config hash for freshness checks.
+// 
+// Exports RIPSTOP_CONFIG_HASH_PATTERN, the regex used to find an embedded config hash in a generated file. Exports RipstopMdFormat, which selects an output variant: markdown, claude, cursor, codex, or q. Exports IGenerateRipstopMdOptions, which supplies generation metadata and the chosen format. Exports extractEmbeddedConfigHash(), which parses a RIPSTOP.md body and returns the embedded hash if present. Exports generateRipstopMarkdown(), the main entry point that builds the core markdown and optionally wraps or rewrites it for tool-specific formats (Claude tag wrapper, Cursor heading rewrites, and extra prefixes for Codex and Amazon Q).
+// 
+// Relies on IRipstopConfig from ../config/schema for the resolved checks and bypass trailer settings.
+// ===End StrongAI Generated Comment===
+
+
 import { IRipstopConfig } from '../config/schema';
 
 /** Regex to read embedded config hash from a generated RIPSTOP.md header. */

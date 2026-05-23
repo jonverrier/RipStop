@@ -4,6 +4,11 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Implements the CLI logic for the ripstop generate-md command, including an optional freshness check used by --check-fresh. It parses command-line flags, loads and hashes the resolved guardrails configuration, generates formatted RIPSTOP documentation, and writes it to disk (or prints it for dry runs). The IGenerateMdCommand type defines the normalized command shape used by the runner. parseGenerateMdArgs converts argv into that command, validating required flag values and enforcing supported output formats (markdown, claude, cursor, codex, q) with InvalidParameterError for invalid input. runGenerateMd is the main entry point. It resolves paths relative to the repo root, reads the ripstop package version for metadata, and either verifies the existing output contains the expected embedded config hash or regenerates content via generateRipstopMarkdown. When generating in claude format it also writes a .claude/settings.ripstop.json file built by buildClaudeRipstopDenySettingsJson. Key dependencies include fs/promises and path, loadConfig, hashResolvedRipstopConfig, and extractEmbeddedConfigHash.
+// ===End StrongAI Generated Comment===
+
+
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { InvalidParameterError } from '@jonverrier/assistant-common';

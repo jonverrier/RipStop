@@ -4,6 +4,17 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Defines Zod schemas used to validate and normalize Ripstop YAML configuration files. It centralizes defaults and basic shape checks so consumers can parse config safely and consistently.
+// 
+// RepoTierSchema constrains repository tier to 1, 2, or 3, and RepoTier is the inferred TypeScript type. CheckModeSchema and TriggerSchema are enums derived from imported CHECK_MODES and TRIGGERS, ensuring config values match the supported check modes and trigger names.
+// 
+// BaseCheckConfigSchema describes per-check configuration. It supports a mode (defaulting to "warn"), optional triggers, and optional exemptions. Each exemption requires a non-empty path and reason, and can optionally list specific positive integer line numbers. The schema is passthrough, allowing additional check-specific keys.
+// 
+// RipstopConfigSchema is the top-level config schema. It validates repo metadata, optional extends, plugin list, local_checks settings, a checks map keyed by check name, reporting output options, and bypass rules including trailers and optional per-rule trailer overrides. IRipstopConfig and IBaseCheckConfig are inferred types for consumers.
+// ===End StrongAI Generated Comment===
+
+
 import { z } from 'zod';
 import { CHECK_MODES, TRIGGERS } from '../checks/types';
 

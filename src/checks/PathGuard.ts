@@ -4,6 +4,11 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// This module implements the PathGuard check, which blocks or warns on edits to change-controlled paths unless the commit message includes an explicit approval trailer. It exports a single check object, pathGuardCheck, conforming to the ICheck interface. The check supports the commit-msg and ci triggers, validates and defaults its configuration with a Zod schema, and then scans the changed files in the ICheckContext. If any file path matches a configured glob in protected_paths, the check requires a trailer line like CHANGE-APPROVED: ... (or a custom approval_trailer). When the trailer is missing, it returns one IFinding per protected file, using error severity in enforce mode and warning otherwise. For guardrails “self protection” files, it uses a stronger message (customizable via self_protection_message) and a distinct ruleId. It relies on matchGlobPattern for path matching and isGuardrailsSelfProtectionPath to identify configuration files that should be especially protected.
+// ===End StrongAI Generated Comment===
+
+
 import { z } from 'zod';
 import { ICheck, ICheckContext, IFinding } from './types';
 import { isGuardrailsSelfProtectionPath, matchGlobPattern } from './selfProtectionPaths';

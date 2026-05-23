@@ -4,6 +4,11 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Loads and validates Ripstop configuration from YAML, with support for inheriting built-in preset YAML files. The main entry point is loadConfig(repoRoot, configPath), which resolves the config path, reads the YAML object, optionally follows an extends reference to a built-in preset, deep-merges preset and repo values, and validates the result against RipstopConfigSchema, returning a typed IRipstopConfig. Preset inheritance is resolved recursively with a depth limit and only allows preset references that begin with the fixed @jonverrier/ripstop/presets/ prefix. deepMerge is also exported and performs a recursive object merge where arrays are replaced (not concatenated) and non-objects are overridden. Internally, YAML parsing uses js-yaml, file access uses fs/promises, and path is used for safe path resolution. Errors are normalized to InvalidParameterError for invalid YAML, schema failures, and preset issues, and InvalidStateError when the config file cannot be found.
+// ===End StrongAI Generated Comment===
+
+
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as yaml from 'js-yaml';

@@ -5,6 +5,11 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// Ripstop CLI entry point. It parses command-line arguments, dispatches subcommands, and sets process exit codes for hook and CI usage. The main export is parseArgs(argv), which converts argv into a typed Command for check, list, explain, version, generate-md, or recover, and prints help on --help. At runtime, main() builds the default check registry, opens the current Git repo, loads configuration, and executes the chosen operation. For check, it selects files (staged, all, or diff), reads an optional commit message file, optionally parses pre-push stdin into a push payload, then runs checks and reports results in human or JSON format. list prints available checks, explain prints check metadata and optionally resolved config, version prints a fixed version string, generate-md renders documentation, and recover prints config history snapshots. Key dependencies include InvalidParameterError/InvalidStateError for consistent error handling, the check registry and types (TRIGGERS, CHECK_MODES), Git utilities, config loading, Runner.runChecks, reporter creation, and generate-md/recover command modules.
+// ===End StrongAI Generated Comment===
+
+
 import * as process from 'process';
 import { InvalidParameterError, InvalidStateError } from '@jonverrier/assistant-common';
 import { CHECK_MODES, CheckMode, IPushPayload, Trigger, TRIGGERS } from './checks/types';

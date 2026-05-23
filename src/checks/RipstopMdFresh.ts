@@ -4,6 +4,11 @@
  */
 // Copyright (c) 2026 Jon Verrier
 
+// ===Start StrongAI Generated Comment (20260523)===
+// This module defines a check that ensures the generated RIPSTOP.md file is present and matches the current resolved Ripstop configuration. It is intended to fail in pre-commit and CI when the documentation is missing or stale. The main export is ripstopMdFreshCheck, an ICheck implementation with a Zod-backed config schema that accepts output_path (defaulting to RIPSTOP.md). On run, it resolves the output path relative to the repo root, reads the file with fs/promises, and reports a finding if the file is missing. It computes the expected configuration hash using hashResolvedRipstopConfig over the resolved IRipstopConfig from the check context, then extracts the embedded hash from the markdown via extractEmbeddedConfigHash. If the hash is absent or does not match, it returns a warning or error finding depending on ctx.mode, with rule IDs for missing, no-hash, and stale cases. Key dependencies include Node path utilities, Zod for configuration parsing, and shared types for check context and findings.
+// ===End StrongAI Generated Comment===
+
+
 import * as fs from 'fs/promises';
 import * as path from 'path';
 import { z } from 'zod';
