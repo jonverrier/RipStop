@@ -78,7 +78,7 @@ npx ripstop recover --config-history --since 2026-01-01T00:00:00.000Z
 
 ## Architecture
 
-Generated C4 docs for this repo (via `@jonverrier/c4-auto`):
+Generated C4 docs for this repo (via `@jonverrier/auto-doc`):
 
 - [src/README.StrongAI.Component.md](src/README.StrongAI.Component.md) — package-level component view
 - [src/README.StrongAI.Context.md](src/README.StrongAI.Context.md) — package-level context view

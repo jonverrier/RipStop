@@ -70,4 +70,4 @@ npm pack --dry-run
 ## Related Packages
 
 - **AssistantCommon** (`@jonverrier/assistant-common`) — shared error types.
-- **C4-Auto** (`@jonverrier/c4-auto`) — generates architecture docs for this repo (`README.StrongAI.*.md` under `src/`).
+- **AutoDoc** (`@jonverrier/auto-doc`) — generates architecture docs for this repo (`README.StrongAI.*.md` under `src/`).

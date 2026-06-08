@@ -38,7 +38,7 @@
     "prepublishOnly": "npm run build",
     "test": "jest --selectProjects unit",
     "test:ci": "jest --selectProjects ci",
-    "generate-docs": "c4-auto --dir ./src --files \"*.ts\" --one-month --c4component --c4context --rollup",
+    "generate-docs": "auto-doc --dir ./src --files \"*.ts\" --one-month --c4component --c4context --rollup",
     "cover": "jest --selectProjects ci --coverage --coverageReporters=html text lcov"
   },
   "dependencies": {
@@ -48,7 +48,7 @@
     "zod": "^4.1.13"
   },
   "devDependencies": {
-    "@jonverrier/c4-auto": "^0.2.2",
+    "@jonverrier/auto-doc": "^1.0.1",
     "@types/jest": "^29.5.14",
     "@types/js-yaml": "^4.0.9",
     "@types/node": "^24.0.10",
