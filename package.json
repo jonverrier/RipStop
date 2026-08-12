@@ -1,6 +1,6 @@
 {
   "name": "@jonverrier/ripstop",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "Git hook and CI guardrails for AI-assisted software development",
   "private": false,
   "type": "commonjs",
